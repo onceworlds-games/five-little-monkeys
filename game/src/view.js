@@ -395,16 +395,71 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     fx.update(dt, t, h / (2 * Math.tan(THREE.MathUtils.degToRad(camFov / 2))), camera);
     if (needWarm) {
       needWarm = false;
-      const r = stage.renderer;
-      if (r.compileAsync) {
+      startWarm();
+    }
+    if (warmList) stepWarm();
+    if (warming > 0 || warmList) return;
+    stage.draw(dt);
+  }
+
+  // Warming a new room's shaders. Where the browser compiles in the background (KHR_parallel_shader_compile), all at once
+  // with compileAsync. Elsewhere (software graphics, some phones) one shader per frame, so no single task holds the page
+  // for long: the page keeps answering its room, its input and the platform while the room comes in.
+  let warmList = null;
+  function startWarm() {
+    const r = stage.renderer;
+    const target = stage.sceneTarget();
+    const prev = r.getRenderTarget();
+    try {
+      if (r.getContext().getExtension('KHR_parallel_shader_compile') && r.compileAsync) {
+        r.setRenderTarget(target);
         warming++;
         Promise.race([r.compileAsync(scene, camera), new Promise((ok) => setTimeout(ok, 8000))])
           .catch(() => {})
           .finally(() => warming--);
+        return;
       }
+      const seen = new Set();
+      warmList = [];
+      scene.traverse((o) => {
+        if (!(o.isMesh || o.isPoints || o.isSprite || o.isLine) || !o.material) return;
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+          if (seen.has(m)) continue;
+          seen.add(m);
+          warmList.push(o);
+          break;
+        }
+      });
+      warmT0 = performance.now();
+    } catch (err) {
+      console.warn('warm', err);
+      warmList = null;
+    } finally {
+      r.setRenderTarget(prev);
     }
-    if (warming > 0) return;
-    stage.draw(dt);
+  }
+  let warmT0 = 0;
+  function stepWarm() {
+    const r = stage.renderer;
+    const prev = r.getRenderTarget();
+    const before = r.info.programs.length;
+    const t0 = performance.now();
+    try {
+      r.setRenderTarget(stage.sceneTarget());
+      while (warmList.length) {
+        const o = warmList.shift();
+        if (!o.parent) continue;
+        for (const m of r.compile(o, camera, scene)) r.properties.get(m).currentProgram?.getUniforms();
+        if (r.info.programs.length > before || performance.now() - t0 > 24) break;
+      }
+    } catch (err) {
+      console.warn('warm', err);
+      warmList.length = 0;
+    } finally {
+      r.setRenderTarget(prev);
+    }
+    // Never wait for ever: after 30 s the rest compiles as it is drawn.
+    if (!warmList.length || performance.now() - warmT0 > 30000) warmList = null;
   }
 
   /** Screen position (CSS px) of a world point. */

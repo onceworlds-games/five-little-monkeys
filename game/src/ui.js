@@ -62,7 +62,7 @@ const SLOT_ICON = { pj: 'shirt', hat: 'hat', thread: 'thread', trail: 'trail', d
 const FELTS = ['f-red', 'f-blue', 'f-amber', 'f-plum', 'f-green'];
 
 /** The game's name, arched over a big MONKEYS. */
-function logo() {
+export function logo() {
   const mk = (tag, attrs = {}, text) => {
     const e = document.createElementNS(NS, tag);
     for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);

@@ -12,7 +12,8 @@ Play: https://onceworlds.com/play/five-little-monkeys
 - `npm test`: the physics, rings, pump, toys, twists, bots and round rules, the Rush, progression and the wardrobe,
   balance simulations, message checks, and whole matches through a fake room.
 - `?poster=cover|action|win|multi|icon|badge-<id>` draws the store art. On local hosts only: `?autoplay=1` lets the bots
-  play your seat (captures), `?quality=low|medium|high` picks the graphics, `?debug` shows the draw calls.
+  play your seat (captures; `&bed=water`, `&twist=dark` pick the bed and a first-round twist), `?logoonly=1` shows
+  only the name on the title, `?quality=low|medium|high` picks the graphics, `?debug` shows the draw calls.
 
 How it plays, the numbers and the netcode: [DESIGN.md](DESIGN.md). Models, textures, sounds and fonts: [CREDITS.md](CREDITS.md).
 

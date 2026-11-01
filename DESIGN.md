@@ -434,19 +434,19 @@ layered with synthesized Web Audio.
 
 ## Store art and the trailer
 
-- **Cover** (`thumb-1`): five monkeys mid-air over a rippling quilt, a ring rolling out from a slam under them; moonlight
-  and the lamp pool; "FIVE LITTLE MONKEYS" embroidered once, big.
-- **Action** (`thumb-2`): low angle, a crest lifting the quilt patches and flinging a monkey at the camera.
-- **Win** (`thumb-3`): the door open, the light wedge, Mama's silhouette, the winner frozen mid-bounce in the nightcap,
-  bandaged monkeys on the rug.
+- **Cover** (`thumb-1`): a real moment from a bot round on the Kid's Bed (Banana Bonanza, so toys are on the quilt):
+  monkeys mid-air in their outfits, a ring rolling out from a slam, a golden banana bobbing; the felt logo once, big.
+- **Action** (`thumb-2`): low angle, a crest lifting the quilt and flinging a monkey at the camera, its trail behind it.
+- **Win** (`thumb-3`): the door open, the light wedge, Mama's silhouette, the winner frozen mid-bounce under the crown,
+  bandaged monkeys on the rug, the ribbon "NO MORE MONKEYS JUMPING ON THE BED!".
 - **Multi** (`thumb-4`): the final duel: two monkeys on the bed and a ring between them, the three that fell on the rug
-  with their pillows.
-- **Icon:** one monkey in striped pyjamas at the top of a bounce over a ring of quilt, on midnight; no text.
-- **Badges:** a bold symbol on a coloured felt disc each (a fist on a ring, a bandage, two monkeys, a door, a shield, a
-  pillow, a down arrow, bunk beds, a wave, a bed with five stars).
-- **Trailer** (26 s, real play with its own sound, autoplay captures): frame 0 is a slam ring rolling through the
-  monkeys; "FOUR LITTLE MONKEYS" by 3 s; the wild springs; three left; the Water Bed's slow rolling rings; the last
-  fall, "NO MORE MONKEYS JUMPING ON THE BED!" and Mama in the door; the last 3 s the title over the bed in play.
+  throwing pillows.
+- **Icon:** one monkey in striped pyjamas and a nightcap at the top of a bounce over a ring of quilt; no text.
+- **Badges:** a bold symbol on a felt disc each (a fist on a ring, a bandage, two monkeys, a door, a shield, a pillow, a
+  down arrow, bunk beds, a wave, a bed with five stars, a gift box with a moon, a ringing alarm clock with a bolt).
+- **Trailer** (real autoplay captures on the GPU with the game's own sound): frame 0 is a slam ring rolling through the
+  monkeys; the first knock-off and its verse by 3 s; toys, a twist, the wild springs; the last fall, "NO MORE MONKEYS
+  JUMPING ON THE BED!" and Mama in the door; the last 2-3 s the felt logo over the bed in play.
 
 ## Originality check
 

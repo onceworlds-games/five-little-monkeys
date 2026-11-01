@@ -1,7 +1,7 @@
 {
   "slug": "five-little-monkeys",
   "name": "Five Little Monkeys",
-  "description": "Five plush monkeys bounce on one giant bed. Slam the quilt and the ring of fabric launches the others off. Grab the golden banana, a pillow or a spring, ride the twists, and be the last monkey jumping. Then try tonight's Bedtime Rush, earn pyjamas, hats and trails, and finish your nightly goals for the Bedtime Box.",
+  "description": "Five plush monkeys bounce on one giant bed. Slam the quilt and the ring of fabric launches the others off. Grab toys, ride the twists, be the last monkey jumping. Then try Tonight's Rush, dress up in the wardrobe and open the Bedtime Box.",
   "dir": "dist",
   "productionBranch": "main",
   "genre": "Party",
@@ -26,7 +26,7 @@
       "keys": [
         "Space"
       ],
-      "action": "Slam, in time with the bounce; throw a pillow when out"
+      "action": "Slam or pump; throw a pillow when out"
     },
     {
       "keys": [

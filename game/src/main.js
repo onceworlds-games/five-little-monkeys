@@ -29,6 +29,8 @@ const POSTER = params.get('poster');
 const AUTO = LOCAL && params.get('autoplay') === '1';
 // ?debug (local only): the frame's draw calls on <body data-calls>, for measuring.
 const DEBUG = LOCAL && params.has('debug');
+// ?logoonly=1 (local only): the title with nothing but the name over the bed, for the trailer's last shot.
+if (LOCAL && params.get('logoonly') === '1') document.documentElement.classList.add('logoonly');
 const ow = window.onceworlds ?? null;
 
 const BADGES = ['first-slam', 'bumped-head', 'double-bounce', 'no-more-monkeys', 'untouchable', 'pillow-fight', 'saved-it', 'bunk-boss', 'making-waves', 'five-beds', 'bedtime-box', 'rush-hour'];
@@ -406,7 +408,9 @@ async function boot() {
       if (prev === 'results' || prev === 'round') setMusic('box');
     } else if (w.mode === 'round') {
       // The round's twist and toys come from the match and the round: the same on every page.
-      const twist = twistFor(G.room?.match?.id ?? G.rid, G.match.round);
+      // Autoplay (local captures) can ask for a twist from the first round: ?twist=dark.
+      const asked = AUTO && TWIST_NAMES[params.get('twist')] ? params.get('twist') : '';
+      const twist = asked || twistFor(G.room?.match?.id ?? G.rid, G.match.round);
       G.world.reset(w.bed, 0, { lobby: false, roundId: G.rid, seed: G.rid, twist });
       G.twistShown = '';
       G.seenFalls = 0;
@@ -1544,7 +1548,8 @@ async function boot() {
     if (G.screen === 'title') {
       const tr = ui.titleRects();
       margins.top = tr ? tr.logo.top + tr.logo.height * 0.62 : h * 0.3;
-      margins.bottom = tr ? h - (portraitScreen ? tr.me.top : tr.btns.top) + 4 : h * 0.15;
+      const under = tr ? (portraitScreen ? tr.me : tr.btns) : null;
+      margins.bottom = under && under.height ? h - under.top + 4 : h * 0.06;
       fb = { ...bedBox, y1: 1.6, z1: box.z1 + 0.2 };
       opts = { pitch: portraitScreen ? 0.72 : 0.44 };
     } else if (G.screen === 'wardrobe') {

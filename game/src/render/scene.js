@@ -309,6 +309,10 @@ export function createStage(canvasEl, { quality = 'high', poster = false, pixelR
   return {
     renderer, scene, camera, moon, hemi, fill, setQuality, fit, view, addTrauma, shakeOffset, resize, draw, focus,
     punch, punchStep, flash: flashOn,
+    /** Where the scene itself is drawn (the post chain's buffer, or null for the screen): shaders differ between them. */
+    sceneTarget() {
+      return composer ? composer.readBuffer : null;
+    },
     get quality() {
       return q;
     },

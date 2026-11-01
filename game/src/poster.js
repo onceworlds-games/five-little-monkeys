@@ -4,6 +4,7 @@ import { createView } from './view.js';
 import { createWorld } from './world.js';
 import { COLORS, CAST } from './look.js';
 import { PILLOW } from './sim/config.js';
+import { logo } from './ui.js';
 
 const SIZES = { icon: [512, 512] };
 
@@ -20,12 +21,12 @@ function looksFor(ids) {
 }
 
 /** Play rounds from `seed` and keep the moment `score(world)` likes best; returns a world stopped there. */
-function search(bed, seed, score, maxT = 60) {
+function search(bed, seed, score, maxT = 60, twist = '') {
   const ids = ['p0', 'p1', 'p2', 'p3', 'p4'];
   const kinds = ['rumble', 'tiptoe', 'mimic', 'dozy', 'pro'];
   const build = () => {
     const w = createWorld(bed);
-    w.reset(bed, 0, { lobby: false });
+    w.reset(bed, 0, { lobby: false, seed: `poster:${seed}`, twist });
     w.grace = 1.5;
     w.botGrace = 1.5;
     ids.forEach((id, i) => w.add(id, { role: 'bot', index: i, brain: { kind: kinds[i], skill: 0.75, seed: `${seed}:${id}` } }));
@@ -59,7 +60,9 @@ function scoreCover(w) {
   const launched = alive.filter((b) => b.mode === 'launched' && b.vz > 1.2 && b.y > 0.9);
   const ring = w.waves.filter((wv) => w.t - wv.t0 > 0.12 && w.t - wv.t0 < 0.4).length;
   const air = alive.filter((b) => b.y > 0.7).length;
-  return launched.length * 6 + Math.min(ring, 2) * 4 + air;
+  const toys = (w.liveToys?.(w.t) ?? []).filter((toy) => !toy.taken && w.t >= toy.at).length;
+  const dizzy = alive.filter((b) => b.dizzy > 0).length;
+  return launched.length * 6 + Math.min(ring, 2) * 4 + air + Math.min(toys, 2) * 3 + Math.min(dizzy, 2);
 }
 function scoreAction(w) {
   const bs = bodies(w);
@@ -103,7 +106,7 @@ export async function runPoster(name) {
   let fopts = {};
   let door = 0;
   if (name === 'cover' || name === 'action') {
-    world = search('kid', name === 'cover' ? 'cover7' : 'act3', name === 'cover' ? scoreCover : scoreAction, 45);
+    world = name === 'cover' ? search('kid', 'cover7', scoreCover, 45, 'bonanza') : search('kid', 'act3', scoreAction, 45);
     const b = world.bed.box;
     box = { x0: b.x0 - 0.3, x1: b.x1 + 0.3, y0: -0.6, y1: 2.6, z0: b.z0, z1: b.z1 + 0.8 };
     if (name === 'cover') {
@@ -165,7 +168,7 @@ export async function runPoster(name) {
   }
   const ids = [...world.entries.keys()];
   opts.looks = looksFor(ids);
-  if (name === 'icon') opts.looks.set('p0', { ...opts.looks.get('p0'), pattern: 'stripes' });
+  if (name === 'icon') opts.looks.set('p0', { ...opts.looks.get('p0'), pattern: 'stripes', hat: 'nightcap' });
   opts.colorOf = (id) => opts.looks.get(id)?.hex ?? '#FFF1D6';
   // Who launched whom: trails in the launcher's colour.
   for (const e of world.entries.values()) if (e.body.lastBy) opts.lastLaunch.set(e.id, opts.colorOf(e.body.lastBy));
@@ -204,22 +207,20 @@ export async function runPoster(name) {
 
 function titleOverlay(W) {
   const d = document.createElement('div');
-  d.className = 'patch c-red gingham embroid';
-  d.style.cssText = `position:fixed;left:50%;top:26px;transform:translateX(-50%) rotate(-1.5deg);padding:14px 40px 18px;text-align:center;width:max-content;max-width:${W - 80}px`;
-  for (const [text, size, lh] of [['FIVE LITTLE', 44, 1], ['MONKEYS', 104, 0.95]]) {
-    const s = document.createElement('span');
-    s.style.cssText = `display:block;font-size:${size}px;line-height:${lh}`;
-    s.textContent = text;
-    d.appendChild(s);
-  }
+  d.style.cssText = `position:fixed;left:50%;top:14px;transform:translateX(-50%) rotate(-1.5deg);width:${Math.min(600, W - 120)}px;filter:drop-shadow(0 10px 18px rgba(8,4,16,0.55))`;
+  d.appendChild(logo());
   document.getElementById('ui').appendChild(d);
 }
 
 function verseOverlay(text) {
   const d = document.createElement('div');
-  d.className = 'patch c-red stripe embroid';
-  d.style.cssText = 'position:fixed;left:50%;top:24px;transform:translateX(-50%);padding:12px 30px 14px;font-size:38px;width:max-content';
-  d.textContent = text;
+  d.id = 'banner';
+  d.style.top = '26px';
+  const r = document.createElement('div');
+  r.className = 'ribbon slab';
+  r.style.fontSize = '40px';
+  r.textContent = text;
+  d.appendChild(r);
   document.getElementById('ui').appendChild(d);
 }
 
@@ -236,6 +237,8 @@ const BADGE = {
   'bunk-boss': ['#C8752E', 'bunk'],
   'making-waves': ['#2E6E8E', 'wave'],
   'five-beds': ['#B5861A', 'bed5'],
+  'bedtime-box': ['#6C4FB8', 'box'],
+  'rush-hour': ['#E0662E', 'clock'],
 };
 
 function drawBadge(canvasEl, id, S) {
@@ -421,6 +424,72 @@ function drawBadge(canvasEl, id, S) {
         g.stroke();
       }
       break;
+    case 'box': {
+      // A gift box tied with a ribbon, a crescent moon on the lid.
+      g.beginPath();
+      g.roundRect(-58, -12, 116, 78, 8);
+      both();
+      g.beginPath();
+      g.roundRect(-66, -38, 132, 30, 8);
+      both();
+      g.fillStyle = '#FFB24A';
+      g.beginPath();
+      g.rect(-12, -38, 24, 104);
+      both();
+      for (const sx of [-1, 1]) {
+        g.beginPath();
+        g.ellipse(sx * 26, -56, 26, 15, sx * -0.5, 0, Math.PI * 2);
+        both();
+      }
+      g.beginPath();
+      g.arc(0, -50, 10, 0, Math.PI * 2);
+      both();
+      g.fillStyle = '#2B1B33';
+      g.beginPath();
+      g.arc(-34, 26, 16, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = shade(col, -0.05);
+      g.beginPath();
+      g.arc(-27, 20, 14, 0, Math.PI * 2);
+      g.fill();
+      break;
+    }
+    case 'clock': {
+      // The alarm clock, ringing, a bolt across its face.
+      g.beginPath();
+      g.moveTo(-40, 56);
+      g.lineTo(-54, 76);
+      g.moveTo(40, 56);
+      g.lineTo(54, 76);
+      g.stroke();
+      for (const sx of [-1, 1]) {
+        g.beginPath();
+        g.arc(sx * 40, -54, 20, Math.PI, 0);
+        g.closePath();
+        both();
+      }
+      g.beginPath();
+      g.arc(0, 4, 62, 0, Math.PI * 2);
+      both();
+      g.fillStyle = '#FFE27A';
+      g.beginPath();
+      g.moveTo(10, -40);
+      g.lineTo(-22, 10);
+      g.lineTo(-2, 10);
+      g.lineTo(-12, 48);
+      g.lineTo(24, -6);
+      g.lineTo(4, -6);
+      g.closePath();
+      both();
+      g.lineWidth = 6;
+      for (const [x0, y0, x1, y1] of [[-76, -70, -92, -86], [76, -70, 92, -86], [-86, -40, -104, -44], [86, -40, 104, -44]]) {
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.lineTo(x1, y1);
+        g.stroke();
+      }
+      break;
+    }
     default:
   }
   g.restore();
