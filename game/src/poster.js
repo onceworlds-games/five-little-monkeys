@@ -94,6 +94,7 @@ export async function runPoster(name) {
   }
   const view = createView(canvasEl, { quality: 'high', poster: true, pixelRatio: 1 });
   view.stage.resize(W, H, 1);
+  await view.ready;
   let world;
   const opts = { anim: 1.3, dt: 1 / 60, colorOf: () => '#fff', lastLaunch: new Map(), extras: [] };
   let box;
@@ -190,7 +191,8 @@ export async function runPoster(name) {
     view.fx.update(1 / 60, world.t, 600);
     for (const e of world.entries.values()) if (e.body.mode === 'launched') view.fx.trail(e.body.x, e.body.y + 0.45 - i * 0.05, e.body.z - i * 0.12, opts.lastLaunch.get(e.id) ?? '#fff');
   }
-  view.draw(world, { ...opts, me: null, hideRing: true });
+  // Let the poses settle (the animator eases between them).
+  for (let i = 0; i < 40; i++) view.draw(world, { ...opts, me: null, hideRing: true });
   view.render(0, 1.3, true);
   if (name === 'cover') titleOverlay(W);
   if (name === 'win') verseOverlay('NO MORE MONKEYS JUMPING ON THE BED!');

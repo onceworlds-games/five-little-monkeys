@@ -1012,7 +1012,7 @@ async function boot() {
     G.bandDrawn = null;
   }));
   function reserved() {
-    const r = safe(() => ow.ui.reserved) ?? null;
+    const r = safe(() => ow?.ui?.reserved) ?? null;
     let menuBottom = 70;
     let lobbyTop = innerHeight - 88;
     let menuRight = 150;

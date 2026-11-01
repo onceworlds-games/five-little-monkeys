@@ -172,6 +172,55 @@ function ringMesh() {
   return m;
 }
 
+const APPROACH_FS = /* glsl */ `
+uniform vec3 uColor;
+uniform float uR;
+uniform float uR0;
+uniform float uHit;
+uniform float uAlpha;
+varying vec2 vUv;
+void main() {
+  float r = length(vUv * 2.0 - 1.0);
+  float w = 0.035;
+  float moving = smoothstep(uR - w * 1.6, uR - w * 0.4, r) * (1.0 - smoothstep(uR + w * 0.4, uR + w * 1.6, r));
+  float target = smoothstep(uR0 - w, uR0 - w * 0.3, r) * (1.0 - smoothstep(uR0 + w * 0.3, uR0 + w, r));
+  vec3 hit = mix(vec3(1.0, 0.97, 0.88), vec3(1.0, 0.82, 0.25), step(1.5, uHit));
+  vec3 col = mix(uColor, hit, step(0.5, uHit));
+  float a = max(moving, target * (0.35 + 0.65 * step(0.5, uHit))) * uAlpha;
+  if (a < 0.01) discard;
+  gl_FragColor = vec4(col * (1.0 + uHit * 0.4), a);
+  #include <colorspace_fragment>
+}`;
+
+function approachMesh() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color() }, uR: { value: 1 }, uR0: { value: 0.25 }, uHit: { value: 0 }, uAlpha: { value: 1 } },
+    vertexShader: RING_VS,
+    fragmentShader: APPROACH_FS,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  m.rotation.x = -Math.PI / 2;
+  m.renderOrder = 4;
+  m.scale.setScalar(3.6);
+  return m;
+}
+
+function starGeometry(r = 0.1, depth = 0.04) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 + Math.PI / 2;
+    const rr = i % 2 ? r * 0.45 : r;
+    if (i === 0) sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    else sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2 });
+  g.center();
+  return g;
+}
+
 function pillowGeometry() {
   const g = new THREE.BoxGeometry(0.7, 0.22, 0.45, 6, 2, 4);
   const p = g.attributes.position;
@@ -213,6 +262,20 @@ export function createFx(scene) {
   aim.material.uniforms.uPie.value = 1;
   scene.add(you, aim);
 
+  const approach = approachMesh();
+  scene.add(approach);
+
+  // Dizzy stars circling heads.
+  const MAXS = 18;
+  const dizzyStars = new THREE.InstancedMesh(starGeometry(0.09, 0.03), new THREE.MeshStandardMaterial({ color: '#FFD54A', emissive: '#FFB020', emissiveIntensity: 0.9, roughness: 0.4, metalness: 0.1 }), MAXS);
+  dizzyStars.frustumCulled = false;
+  dizzyStars.count = 0;
+  scene.add(dizzyStars);
+  let dizzyN = 0;
+  const dq = new THREE.Quaternion();
+  const de = new THREE.Euler();
+  const one = new THREE.Vector3(1, 1, 1);
+
   // Pillows in flight.
   const pillowGeo = pillowGeometry();
   const pillows = [];
@@ -250,8 +313,39 @@ export function createFx(scene) {
       }
       for (let i = 0; i < 6; i++) puffs.emit(x, y + 0.1, z, { speed: 1.2, up: 1.6, size: 0.5, life: 0.5, color: [1, 0.96, 0.88] });
     },
-    trail(x, y, z, hex) {
-      puffs.emit(x, y, z, { speed: 0.1, up: 0, size: 0.42, life: 0.5, jitter: 0.05, color: rgb(hex) });
+    trail(x, y, z, hex, kind = 'none') {
+      if (kind === 'feathers') feathers.emit(x, y, z, { size: 0.3, life: 1.2, speed: 0.4, float: 1, spin: 3, color: [1, 1, 1] });
+      else if (kind === 'stars') stars.emit(x, y, z, { size: 0.32, life: 0.6, speed: 0.3, up: 0, color: rgb('#FFE27A') });
+      else puffs.emit(x, y, z, { speed: 0.1, up: 0, size: 0.42, life: 0.5, jitter: 0.05, color: rgb(hex) });
+    },
+    /** The pump's approach ring: `ttl` seconds until the feet land (negative: in the quilt), `grade` 1 good, 2 perfect. */
+    approach(x, y, z, hex, ttl, grade, visible) {
+      approach.visible = visible;
+      if (!visible) return;
+      approach.position.set(x, y + 0.04, z);
+      const u = approach.material.uniforms;
+      u.uColor.value.set(hex);
+      u.uR0.value = 0.16;
+      u.uR.value = 0.16 + Math.max(0, ttl) * 1.9;
+      u.uHit.value = grade;
+      u.uAlpha.value = Math.min(1, (0.42 - Math.max(0, ttl)) / 0.12);
+    },
+    dizzyStart() {
+      dizzyN = 0;
+    },
+    /** Stars circling a head (n of them). */
+    dizzy(head, n, t) {
+      for (let i = 0; i < n && dizzyN < MAXS; i++) {
+        const a = t * 4.2 + (i / n) * Math.PI * 2;
+        pv.set(head.x + Math.cos(a) * 0.42, head.y + 0.42 + Math.sin(a * 2) * 0.04, head.z + Math.sin(a) * 0.42);
+        dq.setFromEuler(de.set(0, -a + t * 3, 0.3));
+        mtx.compose(pv, dq, one);
+        dizzyStars.setMatrixAt(dizzyN++, mtx);
+      }
+    },
+    dizzyEnd() {
+      dizzyStars.count = dizzyN;
+      dizzyStars.instanceMatrix.needsUpdate = true;
     },
     /** shadows: [{ x, y (surface), z, h (height above it), alpha }] */
     blobs(list) {

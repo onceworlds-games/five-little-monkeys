@@ -172,8 +172,8 @@ export function quiltTextures(rect, over, colors, seed, px = 112) {
       fabric(g, KINDS[(i * 2 + j * 3 + rng.int(3)) % KINDS.length], x, y, pw, ph, base, accent, rng);
       // Puff in the bump map: lighter in the middle of each patch, sunk at the seams.
       const rg = gb.createRadialGradient(x + pw / 2, y + ph / 2, 2, x + pw / 2, y + ph / 2, pw * 0.7);
-      rg.addColorStop(0, '#b8b8b8');
-      rg.addColorStop(1, '#707070');
+      rg.addColorStop(0, '#8e8e8e');
+      rg.addColorStop(1, '#7c7c7c');
       gb.fillStyle = rg;
       gb.fillRect(x, y, pw, ph);
     }

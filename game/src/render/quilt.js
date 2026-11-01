@@ -61,7 +61,7 @@ float qField(vec2 p, bool colour) {
       if (colour) {
         float strength = clamp(amp / 0.22, 0.0, 1.0);
         vRing += uWC[i] * pow(bd, 0.6) * strength;
-        float core = qBand((d - r) * 4.5);
+        float core = qBand((d - r) * 6.5);
         vCore += core * strength;
       }
     }
@@ -84,18 +84,41 @@ float qField(vec2 p, bool colour) {
 }
 `.replace('    if (k_dummy_never(tau)) h += 0.0;\n', '');
 
-/** A quilt material sharing one set of ring uniforms. */
-export function quiltMaterial(map, bump, rect, si, uniforms, swell = 0) {
-  const mat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.6, roughness: 0.86, metalness: 0 });
+/**
+ * A quilt material sharing one set of ring uniforms. Cotton with a sheen; each patch puffs up between its seams (in the
+ * vertex shader, so the light rakes across real bumps); a ring's crest is tinted and threaded in its slammer's colour.
+ * opts: { weave (normal map), patch: [x0, z0, w, h] (the patch grid), puff (height), quality }.
+ */
+export function quiltMaterial(map, bump, rect, si, uniforms, swell = 0, opts = {}) {
+  const hi = opts.quality !== 'low';
+  const mat = new THREE.MeshPhysicalMaterial({
+    map, bumpMap: bump, bumpScale: 0.9, roughness: 0.9, metalness: 0,
+    sheen: 0.55, sheenRoughness: 0.55, sheenColor: new THREE.Color('#FFF2E0'),
+    normalMap: hi ? opts.weave ?? null : null, normalScale: new THREE.Vector2(0.55, 0.55),
+  });
+  const pt = opts.patch ?? [rect.x0, rect.z0, 1, 1];
   const own = {
     uRect: { value: new THREE.Vector4(rect.x0, rect.x1, rect.z0, rect.z1) },
     uSwell: { value: swell },
     uSi: { value: si },
+    uPatch: { value: new THREE.Vector4(pt[0], pt[1], pt[2], pt[3]) },
+    uPuff: { value: opts.puff ?? 0.075 },
   };
+  mat.userData.uniforms = own;
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms, own);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\n${HEADER}`)
+      .replace('#include <common>', `#include <common>\n${HEADER}
+uniform vec4 uPatch;
+uniform float uPuff;
+float qPuff(vec2 p) {
+  vec2 f = (p - uPatch.xy) / uPatch.zw;
+  vec2 g = fract(f);
+  // Inside the patch grid only; a soft pillow between the seams, flat along them.
+  if (f.x < 0.0 || f.y < 0.0 || p.x > uRect.y || p.y > uRect.w) return 0.0;
+  float s = sin(3.14159265 * g.x) * sin(3.14159265 * g.y);
+  return uPuff * pow(max(s, 0.0), 0.55);
+}`)
       .replace(
         '#include <beginnormal_vertex>',
         `#include <beginnormal_vertex>
@@ -104,10 +127,10 @@ export function quiltMaterial(map, bump, rect, si, uniforms, swell = 0) {
         float qh = 0.0;
         if (aIn > 0.0) {
           vec2 qp = position.xz;
-          qh = qField(qp, true) * aIn;
-          float e = 0.06;
-          float hx = qField(qp + vec2(e, 0.0), false) * aIn;
-          float hz = qField(qp + vec2(0.0, e), false) * aIn;
+          qh = (qField(qp, true) + qPuff(qp)) * aIn;
+          float e = 0.05;
+          float hx = (qField(qp + vec2(e, 0.0), false) + qPuff(qp + vec2(e, 0.0))) * aIn;
+          float hz = (qField(qp + vec2(0.0, e), false) + qPuff(qp + vec2(0.0, e))) * aIn;
           objectNormal = normalize(vec3(-(hx - qh) / e, 1.0, -(hz - qh) / e));
         }`,
       )
@@ -119,11 +142,13 @@ export function quiltMaterial(map, bump, rect, si, uniforms, swell = 0) {
         `#include <emissivemap_fragment>
         vec3 ring = min(vRing, vec3(1.0));
         float ringAmt = max(max(ring.r, ring.g), ring.b);
-        diffuseColor.rgb = mix(diffuseColor.rgb, ring / max(ringAmt, 0.001), ringAmt * 0.38);
-        totalEmissiveRadiance += ring * 0.2 + vec3(1.0, 0.96, 0.86) * clamp(vCore, 0.0, 1.0) * 0.32;`,
+        vec3 hue = ring / max(ringAmt, 0.001);
+        diffuseColor.rgb = mix(diffuseColor.rgb, hue, ringAmt * 0.2);
+        float core = clamp(vCore, 0.0, 1.0);
+        totalEmissiveRadiance += hue * (ringAmt * 0.08 + core * 0.95) + vec3(1.0, 0.97, 0.9) * core * 0.18;`,
       );
   };
-  mat.customProgramCacheKey = () => 'quilt1';
+  mat.customProgramCacheKey = () => `quilt2${hi ? 'h' : 'l'}`;
   return mat;
 }
 
