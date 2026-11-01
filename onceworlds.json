@@ -1,0 +1,27 @@
+{
+  "slug": "five-little-monkeys",
+  "name": "Five Little Monkeys",
+  "description": "Five monkeys bounce on one giant bed. Slam the mattress and the ring of quilt launches the others off. Last monkey jumping wins.",
+  "dir": "dist",
+  "productionBranch": "main",
+  "genre": "Party",
+  "icon": "store/icon.png",
+  "thumbnails": ["store/thumb-1.png", "store/thumb-2.png", "store/thumb-3.png", "store/thumb-4.png"],
+  "controls": [
+    { "keys": ["W", "A", "S", "D"], "action": "Steer (arrows work too)" },
+    { "keys": ["Space"], "action": "Slam; throw a pillow when out" },
+    { "keys": ["Enter"], "action": "Play, play again" }
+  ],
+  "badges": [
+    { "id": "first-slam", "name": "First Slam", "description": "Slam the mattress.", "icon": "store/badge-first-slam.png" },
+    { "id": "bumped-head", "name": "Bumped His Head", "description": "Fall off the bed.", "icon": "store/badge-bumped-head.png" },
+    { "id": "double-bounce", "name": "Double Bounce", "description": "Knock two monkeys off with one slam.", "icon": "store/badge-double-bounce.png" },
+    { "id": "no-more-monkeys", "name": "No More Monkeys", "description": "Win a round.", "icon": "store/badge-no-more-monkeys.png" },
+    { "id": "untouchable", "name": "Untouchable", "description": "Win a round without being launched.", "icon": "store/badge-untouchable.png" },
+    { "id": "pillow-fight", "name": "Pillow Fight", "description": "Knock a monkey off with a pillow.", "icon": "store/badge-pillow-fight.png" },
+    { "id": "saved-it", "name": "Saved It", "description": "Slam out of a launch and land on the bed.", "icon": "store/badge-saved-it.png" },
+    { "id": "bunk-boss", "name": "Bunk Boss", "description": "Win a match on the Bunk Bed.", "icon": "store/badge-bunk-boss.png" },
+    { "id": "making-waves", "name": "Making Waves", "description": "Win a match on the Water Bed.", "icon": "store/badge-making-waves.png" },
+    { "id": "five-beds", "name": "Five Beds", "description": "Win a match on every bed.", "icon": "store/badge-five-beds.png" }
+  ]
+}

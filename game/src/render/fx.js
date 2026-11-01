@@ -1,0 +1,325 @@
+// Effects: puffs of quilt fluff and feathers, stars, launch trails, blob shadows that show each monkey's height, the
+// player's ring of light with the slam cooldown, the pillow aim circle, and flying pillows. Pooled; nothing allocates per
+// frame.
+import * as THREE from 'three';
+import { blobTexture, featherTexture, starTexture } from './textures.js';
+
+const PARTICLE_VS = /* glsl */ `
+attribute float aSize;
+attribute float aAlpha;
+attribute float aRot;
+attribute vec3 aColor;
+varying float vAlpha;
+varying float vRot;
+varying vec3 vColor;
+uniform float uScale;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mv;
+  gl_PointSize = aSize * uScale / max(0.1, -mv.z);
+  vAlpha = aAlpha;
+  vRot = aRot;
+  vColor = aColor;
+}`;
+const PARTICLE_FS = /* glsl */ `
+uniform sampler2D uMap;
+varying float vAlpha;
+varying float vRot;
+varying vec3 vColor;
+void main() {
+  vec2 p = gl_PointCoord - 0.5;
+  float c = cos(vRot), s = sin(vRot);
+  p = vec2(c * p.x - s * p.y, s * p.x + c * p.y) + 0.5;
+  vec4 t = texture2D(uMap, p);
+  if (t.a * vAlpha < 0.02) discard;
+  gl_FragColor = vec4(t.rgb * vColor, t.a * vAlpha);
+  #include <colorspace_fragment>
+}`;
+
+class Particles {
+  constructor(map, max, { additive = false, gravity = -6, drag = 1.5 } = {}) {
+    this.max = max;
+    this.gravity = gravity;
+    this.drag = drag;
+    this.pos = new Float32Array(max * 3);
+    this.vel = new Float32Array(max * 3);
+    this.size = new Float32Array(max);
+    this.alpha = new Float32Array(max);
+    this.rot = new Float32Array(max);
+    this.spin = new Float32Array(max);
+    this.color = new Float32Array(max * 3);
+    this.life = new Float32Array(max);
+    this.age = new Float32Array(max);
+    this.size0 = new Float32Array(max);
+    this.float = new Float32Array(max);
+    this.next = 0;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('aSize', new THREE.BufferAttribute(this.size, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('aAlpha', new THREE.BufferAttribute(this.alpha, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('aRot', new THREE.BufferAttribute(this.rot, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('aColor', new THREE.BufferAttribute(this.color, 3).setUsage(THREE.DynamicDrawUsage));
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
+    this.mat = new THREE.ShaderMaterial({
+      uniforms: { uMap: { value: map }, uScale: { value: 400 } },
+      vertexShader: PARTICLE_VS,
+      fragmentShader: PARTICLE_FS,
+      transparent: true,
+      depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    });
+    this.points = new THREE.Points(g, this.mat);
+    this.points.frustumCulled = false;
+    this.points.renderOrder = 5;
+  }
+  emit(x, y, z, o = {}) {
+    const i = this.next;
+    this.next = (this.next + 1) % this.max;
+    const sp = o.speed ?? 2;
+    const a = Math.random() * Math.PI * 2;
+    const up = o.up ?? 1;
+    this.pos[i * 3] = x + (Math.random() - 0.5) * (o.jitter ?? 0.2);
+    this.pos[i * 3 + 1] = y;
+    this.pos[i * 3 + 2] = z + (Math.random() - 0.5) * (o.jitter ?? 0.2);
+    this.vel[i * 3] = (o.vx ?? 0) + Math.cos(a) * sp * Math.random();
+    this.vel[i * 3 + 1] = (o.vy ?? 0) + up * (0.5 + Math.random()) * sp * 0.8;
+    this.vel[i * 3 + 2] = (o.vz ?? 0) + Math.sin(a) * sp * Math.random();
+    this.size0[i] = (o.size ?? 0.4) * (0.7 + Math.random() * 0.6);
+    this.life[i] = (o.life ?? 0.8) * (0.7 + Math.random() * 0.6);
+    this.age[i] = 0;
+    this.rot[i] = Math.random() * 6.28;
+    this.spin[i] = (Math.random() - 0.5) * (o.spin ?? 4);
+    this.float[i] = o.float ?? 0;
+    const c = o.color ?? [1, 1, 1];
+    this.color[i * 3] = c[0];
+    this.color[i * 3 + 1] = c[1];
+    this.color[i * 3 + 2] = c[2];
+  }
+  update(dt, scale) {
+    this.mat.uniforms.uScale.value = scale;
+    for (let i = 0; i < this.max; i++) {
+      if (this.life[i] <= 0) {
+        this.alpha[i] = 0;
+        continue;
+      }
+      this.age[i] += dt;
+      const k = this.age[i] / this.life[i];
+      if (k >= 1) {
+        this.life[i] = 0;
+        this.alpha[i] = 0;
+        continue;
+      }
+      const drag = Math.max(0, 1 - this.drag * dt);
+      this.vel[i * 3] *= drag;
+      this.vel[i * 3 + 2] *= drag;
+      this.vel[i * 3 + 1] = this.vel[i * 3 + 1] * (this.float[i] ? Math.max(0, 1 - 3 * dt) : 1) + (this.float[i] ? -0.6 : this.gravity) * dt;
+      this.pos[i * 3] += this.vel[i * 3] * dt + (this.float[i] ? Math.sin(this.age[i] * 5 + i) * 0.6 * dt : 0);
+      this.pos[i * 3 + 1] += this.vel[i * 3 + 1] * dt;
+      this.pos[i * 3 + 2] += this.vel[i * 3 + 2] * dt;
+      this.rot[i] += this.spin[i] * dt;
+      this.alpha[i] = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+      this.size[i] = this.size0[i] * (1 + 0.3 * k);
+    }
+    const g = this.points.geometry;
+    g.attributes.position.needsUpdate = true;
+    g.attributes.aSize.needsUpdate = true;
+    g.attributes.aAlpha.needsUpdate = true;
+    g.attributes.aRot.needsUpdate = true;
+    g.attributes.aColor.needsUpdate = true;
+  }
+  clear() {
+    this.life.fill(0);
+    this.alpha.fill(0);
+  }
+}
+
+const RING_VS = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const RING_FS = /* glsl */ `
+uniform vec3 uColor;
+uniform float uFill;
+uniform float uAlpha;
+uniform float uPie;
+varying vec2 vUv;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  float a = atan(p.x, -p.y) / 6.2831853 + 0.5;
+  float ring = smoothstep(0.62, 0.7, r) * (1.0 - smoothstep(0.86, 0.94, r));
+  float arc = step(a, uFill) * smoothstep(0.72, 0.76, r) * (1.0 - smoothstep(0.82, 0.86, r));
+  float pie = uPie * step(a, uFill) * (1.0 - smoothstep(0.58, 0.62, r)) * 0.35;
+  float dash = uPie > 0.0 ? step(0.5, fract(a * 16.0)) * ring : ring * 0.55;
+  vec3 col = mix(uColor, vec3(1.0, 0.97, 0.88), arc);
+  float alpha = max(max(dash, arc), pie) * uAlpha;
+  if (alpha < 0.01) discard;
+  gl_FragColor = vec4(col, alpha);
+  #include <colorspace_fragment>
+}`;
+
+function ringMesh() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color() }, uFill: { value: 1 }, uAlpha: { value: 1 }, uPie: { value: 0 } },
+    vertexShader: RING_VS,
+    fragmentShader: RING_FS,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  m.rotation.x = -Math.PI / 2;
+  m.renderOrder = 4;
+  return m;
+}
+
+function pillowGeometry() {
+  const g = new THREE.BoxGeometry(0.7, 0.22, 0.45, 6, 2, 4);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i) / 0.35;
+    const z = p.getZ(i) / 0.225;
+    const puff = (1 - x * x * 0.6) * (1 - z * z * 0.6);
+    p.setY(i, p.getY(i) * Math.max(0.3, puff));
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+export function createFx(scene) {
+  const puffs = new Particles(blobTexture(0.2), 260, { gravity: -3, drag: 2.5 });
+  const feathers = new Particles(featherTexture(), 120, { gravity: -1, drag: 2 });
+  const stars = new Particles(starTexture(), 90, { gravity: -5, drag: 1 });
+  scene.add(puffs.points, feathers.points, stars.points);
+
+  // Blob shadows: one instanced mesh.
+  const MAXB = 8;
+  const blobs = new THREE.InstancedMesh(
+    new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: blobTexture(0.35), color: '#1A0E22', transparent: true, depthWrite: false, opacity: 0.62, polygonOffset: true, polygonOffsetFactor: -4 }),
+    MAXB,
+  );
+  blobs.renderOrder = 3;
+  blobs.frustumCulled = false;
+  scene.add(blobs);
+  const mtx = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const sv = new THREE.Vector3();
+  const pv = new THREE.Vector3();
+
+  const you = ringMesh();
+  you.scale.setScalar(1.15);
+  const aim = ringMesh();
+  aim.scale.setScalar(1.3);
+  aim.material.uniforms.uPie.value = 1;
+  scene.add(you, aim);
+
+  // Pillows in flight.
+  const pillowGeo = pillowGeometry();
+  const pillows = [];
+  for (let i = 0; i < 6; i++) {
+    const m = new THREE.Mesh(pillowGeo, new THREE.MeshStandardMaterial({ color: '#F4ECDD', roughness: 0.9 }));
+    m.visible = false;
+    m.castShadow = true;
+    scene.add(m);
+    pillows.push({ mesh: m, from: new THREE.Vector3(), to: new THREE.Vector3(), t0: 0, at: 0, live: false, spin: 0 });
+  }
+
+  const col = new THREE.Color();
+  const rgb = (hex) => {
+    col.set(hex);
+    return [col.r, col.g, col.b];
+  };
+
+  return {
+    puff(x, y, z, n, o = {}) {
+      for (let i = 0; i < n; i++) puffs.emit(x, y, z, o);
+    },
+    feathers(x, y, z, n, o = {}) {
+      for (let i = 0; i < n; i++) feathers.emit(x, y, z, { size: 0.35, life: 2.2, speed: 3, float: 1, spin: 3, ...o });
+    },
+    stars(x, y, z, n, o = {}) {
+      for (let i = 0; i < n; i++) stars.emit(x, y, z, { size: 0.45, life: 0.9, speed: 3.5, ...o });
+    },
+    /** A ring of fluff where a slam lands, in the slammer's colour. */
+    slamBurst(x, y, z, e, hex) {
+      const c = rgb(hex);
+      const n = Math.round(10 + e * 10);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        puffs.emit(x + Math.cos(a) * 0.3, y + 0.05, z + Math.sin(a) * 0.3, { vx: Math.cos(a) * (2 + 2 * e), vz: Math.sin(a) * (2 + 2 * e), speed: 0.4, up: 0.8, size: 0.55, life: 0.55, color: c });
+      }
+      for (let i = 0; i < 6; i++) puffs.emit(x, y + 0.1, z, { speed: 1.2, up: 1.6, size: 0.5, life: 0.5, color: [1, 0.96, 0.88] });
+    },
+    trail(x, y, z, hex) {
+      puffs.emit(x, y, z, { speed: 0.1, up: 0, size: 0.42, life: 0.5, jitter: 0.05, color: rgb(hex) });
+    },
+    /** shadows: [{ x, y (surface), z, h (height above it), alpha }] */
+    blobs(list) {
+      let n = 0;
+      for (const b of list) {
+        if (n >= MAXB) break;
+        const k = Math.max(0.25, 1 - b.h * 0.22);
+        const size = 1.15 * k;
+        sv.set(size, 1, size);
+        pv.set(b.x, b.y + 0.02, b.z);
+        mtx.compose(pv, q, sv);
+        blobs.setMatrixAt(n, mtx);
+        n++;
+      }
+      blobs.count = n;
+      blobs.instanceMatrix.needsUpdate = true;
+    },
+    you(x, y, z, hex, fill, visible) {
+      you.visible = visible;
+      if (!visible) return;
+      you.position.set(x, y + 0.03, z);
+      you.material.uniforms.uColor.value.set(hex);
+      you.material.uniforms.uFill.value = fill;
+    },
+    aim(x, y, z, hex, fill, visible) {
+      aim.visible = visible;
+      if (!visible) return;
+      aim.position.set(x, y + 0.04, z);
+      aim.material.uniforms.uColor.value.set(hex);
+      aim.material.uniforms.uFill.value = fill;
+    },
+    throwPillow(fx, fy, fz, x, y, z, t0, at, hex) {
+      const p = pillows.find((pp) => !pp.live) ?? pillows[0];
+      p.from.set(fx, fy, fz);
+      p.to.set(x, y, z);
+      p.t0 = t0;
+      p.at = at;
+      p.live = true;
+      p.spin = (Math.random() - 0.5) * 12;
+      p.mesh.material.color.set(hex).lerp(new THREE.Color('#F4ECDD'), 0.55);
+      p.mesh.visible = true;
+    },
+    update(dt, t, scale) {
+      puffs.update(dt, scale);
+      feathers.update(dt, scale);
+      stars.update(dt, scale);
+      for (const p of pillows) {
+        if (!p.live) continue;
+        const k = (t - p.t0) / Math.max(0.05, p.at - p.t0);
+        if (k >= 1 || k < -0.5) {
+          p.live = false;
+          p.mesh.visible = false;
+          continue;
+        }
+        const kk = Math.max(0, k);
+        p.mesh.position.lerpVectors(p.from, p.to, kk);
+        p.mesh.position.y += Math.sin(kk * Math.PI) * 2.4;
+        p.mesh.rotation.set(kk * p.spin, kk * p.spin * 0.5, 0);
+      }
+    },
+    clear() {
+      puffs.clear();
+      feathers.clear();
+      stars.clear();
+      for (const p of pillows) {
+        p.live = false;
+        p.mesh.visible = false;
+      }
+    },
+  };
+}

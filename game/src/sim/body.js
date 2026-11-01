@@ -282,8 +282,14 @@ function tryLaunch(bed, b, waves, t, events) {
 export function stepBody(b, input, ctx, t, dt) {
   const { bed, waves, level, events } = ctx;
   const authority = ctx.authority !== false;
-  const ix = input?.x ?? 0;
-  const iz = input?.z ?? 0;
+  // Steering is a unit vector at most (a brain's or a page's), and never NaN.
+  let ix = Number.isFinite(input?.x) ? input.x : 0;
+  let iz = Number.isFinite(input?.z) ? input.z : 0;
+  const il = Math.hypot(ix, iz);
+  if (il > 1) {
+    ix /= il;
+    iz /= il;
+  }
   b.ix = ix;
   b.iz = iz;
   for (const [key, until] of b.hits) if (until < t) b.hits.delete(key);
