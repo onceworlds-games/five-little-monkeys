@@ -88,7 +88,8 @@ test('the box gives each exclusive once, then XP', () => {
     else assert.equal(r.boxXp, XP.boxRepeat);
   }
   assert.equal(got.size, BOX_ITEMS.length);
-  assert.ok(ownedKeys(p, 15).length === WARDROBE.length, 'everything owned at the top with all stars');
+  p.xp = 1e8;
+  assert.equal(ownedKeys(p, 15).length, WARDROBE.length, 'everything owned at the top with all stars');
 });
 
 test('progress from storage is checked field by field', () => {
