@@ -284,6 +284,8 @@ export function plushMaterial(look, { quality = 'high' } = {}) {
     uScale: { value: 7.5 },
     uGlow: { value: 0 },
     uDark: { value: 0 },
+    // Lights Out: the pyjamas glow faintly and the plush catches a rim of its own colour, so it reads in the dark.
+    uNight: { value: 0 },
     uDetail: { value: quality === 'low' ? 0 : 1 },
   };
   const mat = new THREE.MeshPhysicalMaterial({
@@ -311,7 +313,7 @@ varying vec3 vBind;
 varying vec3 vBindN;
 uniform vec3 uFur, uSkin, uCloth, uInk1, uInk2, uTrim;
 uniform sampler2D uPattern;
-uniform float uScale, uGlow, uDark, uDetail;
+uniform float uScale, uGlow, uDark, uDetail, uNight;
 float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float vnoise(vec3 x) {
   vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
@@ -363,7 +365,12 @@ material.sheenColor = (uFur * 0.9 + 0.05) * fw.x + uSkin * 0.12 * fw.y + (cloth 
 material.sheenRoughness = clamp(0.35 * fw.x + 0.6 * fw.z + 0.6 * fw.w + 0.8 * fw.y, 0.07, 1.0);
 #endif`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-totalEmissiveRadiance += uInk1 * pm.r * fw.z * uGlow * 1.6;`);
+totalEmissiveRadiance += uInk1 * pm.r * fw.z * uGlow * 1.6;
+if (uNight > 0.0) {
+  float rim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.5);
+  vec3 pj = cloth * fw.z + trimC * fw.w;
+  totalEmissiveRadiance += (pj * 0.22 + (uCloth * 0.8 + 0.1) * rim * 0.75) * uNight;
+}`);
   };
   setPlushLook(mat, look);
   return mat;

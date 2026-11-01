@@ -747,11 +747,32 @@ export function buildRoom(bed, u, quality) {
   }
 
   // --- each bed re-dresses the room ---
+  // The water bed's lava lamp on the sill: a brass cone and cap, tinted glass, wax blobs drifting up and down.
   let lava = null;
   if (bed.id === 'water') {
-    lava = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 1.1, 8, 18), mat(new THREE.MeshStandardMaterial({ color: '#FF6A3A', emissive: '#FF4A1A', emissiveIntensity: 1.6, roughness: 0.3 })));
-    own.push(lava.geometry);
-    lava.position.set(winX1 - 0.9, winY0 + 0.85, back + 0.25);
+    lava = new THREE.Group();
+    const baseG = turned([[0, 0], [0.34, 0], [0.36, 0.05], [0.2, 0.55], [0.17, 0.6], [0, 0.6]], 20);
+    const glassG = turned([[0.17, 0], [0.27, 0.5], [0.27, 0.72], [0.12, 1.32], [0, 1.33]], 20);
+    const capG = turned([[0.13, 0], [0.13, 0.04], [0.07, 0.24], [0, 0.26]], 16);
+    const blobG = new THREE.SphereGeometry(1, 14, 10);
+    own.push(baseG, glassG, capG, blobG);
+    const base = new THREE.Mesh(baseG, brass);
+    const glass = new THREE.Mesh(glassG, mat(new THREE.MeshStandardMaterial({
+      color: '#FF7A3A', emissive: '#FF4A14', emissiveIntensity: 0.55, roughness: 0.12, transparent: true, opacity: 0.5, depthWrite: false,
+    })));
+    glass.position.y = 0.6;
+    const cap = new THREE.Mesh(capG, brass);
+    cap.position.y = 1.92;
+    const wax = mat(new THREE.MeshStandardMaterial({ color: '#FFC03A', emissive: '#FF9A1A', emissiveIntensity: 2.2, roughness: 0.4 }));
+    lava.userData.blobs = [0.11, 0.08, 0.13, 0.07].map((r, i) => {
+      const b = new THREE.Mesh(blobG, wax);
+      b.scale.setScalar(r);
+      b.userData = { r, x: (i % 2 ? 1 : -1) * 0.04, ph: i * 1.7, sp: 0.22 + i * 0.05 };
+      return b;
+    });
+    lava.add(base, glass, cap, ...lava.userData.blobs);
+    lava.scale.setScalar(0.8);
+    lava.position.set(winX1 - 0.9, winY0, back + 0.25);
     group.add(lava);
   }
   if (bed.id === 'bunk' || bed.id === 'poster') {
@@ -830,7 +851,7 @@ export function buildRoom(bed, u, quality) {
     doorPivot.rotation.y = d * 1.9;
     mama.visible = d > 0.25;
     wedge.material.opacity = Math.min(1, d * 1.4);
-    doorLight.intensity = inf.spot ? 90 * d : 0;
+    doorLight.intensity = inf.spot ? 55 * d : 0;
     // Moonlight and its dust.
     beamMat.uniforms.uTime.value = t;
     beamMat.uniforms.uK.value = 1 + dark * 0.8;
@@ -845,7 +866,17 @@ export function buildRoom(bed, u, quality) {
       dustPos[i * 3 + 2] = back - 0.1 + beamDir.z * len;
     }
     dustGeo.attributes.position.needsUpdate = true;
-    if (lava) lava.material.emissiveIntensity = 1.4 + Math.sin(t * 1.3) * 0.3;
+    if (lava) {
+      for (const b of lava.userData.blobs) {
+        const u = b.userData;
+        const k = 0.5 - 0.5 * Math.cos(t * u.sp + u.ph);
+        const y = 0.76 + k * 0.84;
+        // Narrower where the glass narrows; stretched while it climbs.
+        const room = Math.max(0.05, 0.25 - Math.max(0, y - 1.32) * 0.25 - u.r);
+        b.position.set(Math.max(-room, Math.min(room, u.x + Math.sin(t * 0.7 + u.ph) * 0.05)), y, 0);
+        b.scale.set(u.r, u.r * (1 + 0.35 * Math.abs(Math.sin(t * u.sp + u.ph))), u.r);
+      }
+    }
     for (const qq of quilts) qq.mat.userData.t = t;
   }
   update(0, {});

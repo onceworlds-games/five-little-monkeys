@@ -297,6 +297,8 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
       }
       s.lookAt = lookTarget(world, b, camV);
       m.mk.update(s, dt);
+      const pu = m.mk.mesh.material.userData?.u;
+      if (pu?.uNight) pu.uNight.value = darkNow;
       if (b.dizzy > 0 && !b.out) fx.dizzy(m.mk.headWorld(tmpV), b.dizzy, opts.anim);
       if (opts.cap && opts.cap === e.id && !out) {
         m.mk.headWorld(tmpV);

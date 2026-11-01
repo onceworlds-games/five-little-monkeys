@@ -1246,8 +1246,8 @@ async function boot() {
         const seats = G.match.seats.length;
         const firstMatch = G.match.round === 1 && (save.matches ?? 0) === 0;
         const tw = G.world.twist;
-        if (G.match.round === 1) ui.banner(verseFor(seats), firstMatch ? [{ text: 'Stay on. Knock them off.' }] : null, 2.6);
-        else if (tw) ui.banner(TWIST_NAMES[tw], [{ text: `ROUND ${G.match.round}` }], 3, 'twist');
+        if (tw) ui.banner(TWIST_NAMES[tw], [{ text: `ROUND ${G.match.round}` }], 3, 'twist');
+        else if (G.match.round === 1) ui.banner(verseFor(seats), firstMatch ? [{ text: 'Stay on. Knock them off.' }] : null, 2.6);
         else ui.banner(`ROUND ${G.match.round}`, [{ text: verseFor(seats) }], 2.2);
         if (G.screen === 'game') sfx.count(0);
         if (tw && G.screen === 'game') sfx.twist(tw);
@@ -1262,7 +1262,8 @@ async function boot() {
     // Countdown (our own, timed to the room).
     if (G.mode === 'lobby' && G.match?.phase === 'countdown' && G.screen === 'game') {
       const c = G.match.countdown;
-      const n = c === null ? null : Math.max(1, Math.ceil(c));
+      // The big count is for the last ten seconds only (a long wait shows the platform's own strip).
+      const n = c === null || !(c <= 10) ? null : Math.max(1, Math.ceil(c));
       if (n !== G.countN) {
         G.countN = n;
         if (n !== null) sfx.count(n);
