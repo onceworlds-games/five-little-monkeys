@@ -32,7 +32,7 @@ export function createBody(id, bed, x, z, si = 0, phase = 0, t = 0) {
   const b = {
     id, x, z, y: s.top, vx: 0, vz: 0, vy: 0, mode: 'contact', si: s.i, lastTop: s.top, tc: CONTACT,
     apexNext: APEX.base, cool: 0, tumble: 0, dive: null, low: false, hits: new Map(),
-    lastBy: '', lastAt: -99, lastWave: '', lastKind: '', launches: 0, rim: false, out: false, outAt: 0,
+    lastBy: '', lastAt: -99, lastWave: '', lastKind: '', lastMega: false, launches: 0, rim: false, out: false, outAt: 0,
     aimX: s.cx, aimZ: s.cz, nextPillow: 0, slams: 0, saving: false, teeter: 0, landedAt: t, ix: 0, iz: 0,
     // The pump: tier 0-3, the touchdown time, a buffered press, this contact's grade (0 none, 1 good, 2 perfect), an
     // early press this fall, the perfect streak.
@@ -327,6 +327,7 @@ function goOut(bed, b, t, events, authority) {
   b.out = true;
   b.outAt = t;
   b.si = -1;
+  const stars = b.dizzy;
   b.tier = 0;
   b.shield = 0;
   b.mega = 0;
@@ -335,7 +336,7 @@ function goOut(bed, b, t, events, authority) {
   const [ax, az] = clampToBed(bed, (bed.box.x0 + bed.box.x1) / 2, (bed.box.z0 + bed.box.z1) / 2);
   b.aimX = ax;
   b.aimZ = az;
-  events?.push({ type: 'fall', id: b.id, x: b.x, z: b.z, t, by: t - b.lastAt <= 3 ? b.lastBy : '', kind: b.lastKind, wave: b.lastWave });
+  events?.push({ type: 'fall', id: b.id, x: b.x, z: b.z, t, by: t - b.lastAt <= 3 ? b.lastBy : '', kind: b.lastKind, wave: b.lastWave, mega: b.lastMega, stars });
 }
 
 function tryLaunch(bed, b, waves, t, events) {
@@ -385,6 +386,7 @@ function tryLaunch(bed, b, waves, t, events) {
   b.lastAt = t;
   b.lastWave = cr.wave?.id ?? '';
   b.lastKind = cr.kind;
+  b.lastMega = !!cr.wave?.mega;
   b.launches++;
   const stars = b.dizzy;
   b.dizzy = Math.min(DIZZY.max, b.dizzy + 1);
@@ -448,9 +450,10 @@ export function stepBody(b, input, ctx, t, dt) {
       if (!b.grade) b.miss = 'early';
     } else if (meaning === 'slam' && ctx.slamsOn) {
       const plan = planSlam(bed, b, t);
+      const tier = b.tier;
       startDive(b, plan);
       b.slams++;
-      events?.push({ type: 'slam', id: b.id, plan, saving: b.saving });
+      events?.push({ type: 'slam', id: b.id, plan, saving: b.saving, tier });
     }
   }
 

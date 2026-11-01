@@ -20,7 +20,7 @@ export function spawnFor(bed, index) {
  * seats: [{ id, kind, skill }] (kind: a personality; 'none' for a monkey driven from outside through `inputs`).
  * twist: a bedtime twist ('' none); toys: drop toys (default on).
  */
-export function createArena({ bed, seats, seed = 1, firstRound = false, lobby = false, noEnd = false, twist = '', toys = true }) {
+export function createArena({ bed, seats, seed = 1, firstRound = false, lobby = false, noEnd = false, twist = '', toys = true, toysTo = 95 }) {
   const rng = createRng(`${seed}:arena`);
   const rules = twistRules(twist);
   const bodies = [];
@@ -34,14 +34,30 @@ export function createArena({ bed, seats, seed = 1, firstRound = false, lobby = 
   const ids = seats.map((s) => s.id);
   const a = {
     bed, bodies, brains, waves: [], falls: [], events: [], t: 0, done: false, winner: null, outcome: null, seq: 0, twist,
-    toys: toys ? toySchedule(bed, String(seed), { bonanza: rules.bonanza }) : [],
-    rain: rules.rain ? rainSchedule(bed, String(seed)) : [],
+    toys: toys ? toySchedule(bed, String(seed), { bonanza: rules.bonanza, to: toysTo }) : [],
+    rain: rules.rain ? rainSchedule(bed, String(seed), toysTo) : [],
     rainNext: 0,
     stats: { slams: 0, launches: 0, pillows: 0, saves: 0, knockByPillow: 0, grabs: 0, megaKnocks: 0, shields: 0, perfects: 0, wildFalls: Object.fromEntries(ids.map((id) => [id, 0])) },
-    leader: '', rng,
+    leader: '', rng, ids,
   };
   const ctx = { bed, waves: a.waves, level: levelAt(0), slamsOn: false, authority: true, events: a.events };
   const megaWaves = new Set();
+
+  /** Seat a new monkey mid-round (the Rush's monkeys climbing on), at (x, z) on surface si. */
+  a.addSeat = (seat, x, z, si = 0) => {
+    const b = createBody(seat.id, bed, x, z, si, 0.5, a.t);
+    bodies.push(b);
+    ids.push(seat.id);
+    a.stats.wildFalls[seat.id] = 0;
+    if (seat.kind && seat.kind !== 'none') brains.set(seat.id, createBrain(seat.kind, seat.skill ?? 0.5, `${seed}:${seat.id}`));
+    return b;
+  };
+  /** Take a monkey off (a Rush monkey that fell). */
+  a.removeSeat = (id) => {
+    const i = bodies.findIndex((b) => b.id === id);
+    if (i >= 0) bodies.splice(i, 1);
+    brains.delete(id);
+  };
 
   a.liveToys = (t) => a.toys.filter((toy) => !toy.taken && t >= toy.at - TOYS.drop && t < toy.until);
 
@@ -106,7 +122,7 @@ export function createArena({ bed, seats, seed = 1, firstRound = false, lobby = 
       } else if (ev.type === 'fall' && !lobby) {
         const f = addFall(a.falls, ids, { id: ev.id, by: ev.by, at: ev.t, kind: ev.kind });
         if (f && f.kind === 'pillow' && f.by) a.stats.knockByPillow++;
-        if (f && f.by && megaWaves.has(ev.wave)) a.stats.megaKnocks++;
+        if (f && f.by && (ev.mega || megaWaves.has(ev.wave))) a.stats.megaKnocks++;
       }
     }
     prune(a.waves, a.t);
