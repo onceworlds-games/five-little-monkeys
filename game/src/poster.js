@@ -9,11 +9,12 @@ const SIZES = { icon: [512, 512] };
 
 function looksFor(ids) {
   const looks = new Map();
-  const cast = [...CAST, { color: 4, pattern: 'checks', extra: '', kind: 'pro' }];
+  const cast = [...CAST, { color: 4, extra: '', kind: 'pro', look: { pj: 'checks', hat: 'crown', thread: 'gold', trail: 'stars', dance: 'spin' } }];
   ids.forEach((id, i) => {
     const c = cast[i % cast.length];
     const col = COLORS[c.color];
-    looks.set(id, { hex: col.hex, dark: col.dark, symbol: col.symbol, pattern: c.pattern, extra: c.extra });
+    const l = c.look;
+    looks.set(id, { hex: col.hex, dark: col.dark, symbol: col.symbol, pattern: l.pj, hat: l.hat, thread: l.thread, trail: l.trail, dance: l.dance, extra: c.extra });
   });
   return looks;
 }

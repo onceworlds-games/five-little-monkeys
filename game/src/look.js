@@ -20,13 +20,24 @@ export const COLORS = [
   { id: 'violet', hex: '#9C6CF0', dark: '#5E3BA8', symbol: 'diamond', name: 'Violet' },
 ];
 
-/** The four bots: names, colours, patterns and personalities. */
+/** The four bots: names, colours, personalities and what they wear. */
 export const CAST = [
-  { name: 'Rumble', kind: 'rumble', color: 0, pattern: 'stripes', extra: 'brows' },
-  { name: 'Tiptoe', kind: 'tiptoe', color: 1, pattern: 'dots', extra: 'bigeyes' },
-  { name: 'Mimic', kind: 'mimic', color: 2, pattern: 'zigzag', extra: 'glasses' },
-  { name: 'Dozy', kind: 'dozy', color: 3, pattern: 'stars', extra: 'mask' },
+  { name: 'Rumble', kind: 'rumble', color: 0, extra: 'brows', look: { pj: 'stripes', hat: 'bandana', thread: 'ember', trail: 'bolts', dance: 'thump' } },
+  { name: 'Tiptoe', kind: 'tiptoe', color: 1, extra: 'bigeyes', look: { pj: 'dots', hat: 'bunny', thread: 'mint', trail: 'bubbles', dance: 'cartwheel' } },
+  { name: 'Mimic', kind: 'mimic', color: 2, extra: 'glasses', look: { pj: 'zigzag', hat: 'headphones', thread: 'neon', trail: 'confetti', dance: 'worm' } },
+  { name: 'Dozy', kind: 'dozy', color: 3, extra: 'mask', look: { pj: 'stars', hat: 'nightcap', thread: 'moon', trail: 'zzz', dance: 'lullaby' } },
 ];
+
+/** Ring threads: the colour along the crest of a monkey's slam rings ('seat': its seat colour; 'rainbow' cycles). */
+export const THREAD_HEX = {
+  sunny: '#FFD24A', mint: '#5FE3B0', candy: '#FF5A7A', neon: '#3DF5FF', gold: '#FFC23A', ember: '#FF6A1A',
+  galaxy: '#9A7BFF', moon: '#D6E4FF',
+};
+/** A thread's colour now (`t` seconds), or null for the seat's own. */
+export function threadHex(thread, t = 0) {
+  if (thread === 'rainbow') return `hsl(${Math.round((t * 90) % 360)},90%,60%)`;
+  return THREAD_HEX[thread] ?? null;
+}
 export const BOT_NAMES = CAST.map((c) => c.name);
 export const castByName = (name) => CAST.find((c) => c.name === name) ?? null;
 

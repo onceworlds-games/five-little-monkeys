@@ -495,7 +495,7 @@ export function buildRoom(bed, u, quality) {
   const doorPivot = new THREE.Group();
   doorPivot.position.set(doorX0, fl, back - 0.08);
   group.add(doorPivot);
-  const leafMat = mat(new THREE.MeshStandardMaterial({ color: '#EADFCB', roughness: 0.55 }));
+  const leafMat = mat(new THREE.MeshStandardMaterial({ color: '#CDBBA0', roughness: 0.55 }));
   const leafG = roundedBox(doorX1 - doorX0, doorY1 - fl, 0.16, 0.04);
   own.push(leafG);
   const leaf = new THREE.Mesh(leafG, leafMat);
@@ -657,8 +657,8 @@ export function buildRoom(bed, u, quality) {
   const lampShade = new THREE.Mesh(shadeG, shadeMat);
   lampShade.position.set(lampX, nsTop + 1.6, lampZ);
   group.add(lampShade);
-  const lamp = new THREE.PointLight('#FFB060', 16, 30, 1.25);
-  lamp.position.set(lampX - 0.4, nsTop + 1.5, lampZ + 1.2);
+  const lamp = new THREE.PointLight('#FFB060', 12, 30, 1.15);
+  lamp.position.set(lampX - 0.9, nsTop + 1.5, lampZ + 1.4);
   group.add(lamp);
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6), mat(new THREE.MeshBasicMaterial({ map: mat(blobTexture(0.05)), color: '#FFB24A', transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
   own.push(glow.geometry);
@@ -809,7 +809,7 @@ export function buildRoom(bed, u, quality) {
     const dark = inf.dark ?? 0;
     const flick = (inf.wild ?? 0) > 0 ? (Math.sin(t * 37) * Math.sin(t * 13.7) > 0.55 ? 0.4 : 1) : 1;
     const on = (1 - dark * 0.92) * flick;
-    lamp.intensity = 16 * (0.75 + 0.25 * flick) * (1 - dark * 0.95);
+    lamp.intensity = 12 * (0.75 + 0.25 * flick) * (1 - dark * 0.95);
     shadeMat.emissiveIntensity = 0.85 * on;
     glow.material.opacity = 0.16 * on;
     for (let i = 0; i < bulbs.length; i++) {

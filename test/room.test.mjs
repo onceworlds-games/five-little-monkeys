@@ -5,7 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorld } from '../game/src/world.js';
 import { createReferee, CREDIT_WINDOW } from '../game/src/referee.js';
-import { acceptMessage, checkPresence, rateGate, slamMessage, pillowMessage } from '../game/src/protocol.js';
+import { acceptMessage, checkPresence, rateGate, slamMessage, pillowMessage, grabMessage, hitMessage } from '../game/src/protocol.js';
+import { twistFor } from '../game/src/sim/twists.js';
 import { createBrain, PERSONALITIES } from '../game/src/sim/brain.js';
 import { aliveIds, outcomeOf } from '../game/src/sim/round.js';
 import { ROUND } from '../game/src/sim/config.js';
@@ -24,7 +25,7 @@ function createRoom({ bed = 'kid', humans = ['ann', 'bo'], bots = 3, lag = 0.1, 
   seats.forEach((s, i) => (s.index = i));
   const room = {
     bed, seats, seed, lag, host: humans[0], t: 0, round: 0, rid: '', wire: [], pages: new Map(), totals: {},
-    match: null, ended: null, acts: [], log: [],
+    match: null, ended: null, acts: [], log: [], grabs: [], hits: [], twist: '',
   };
   for (const s of seats) room.totals[s.id] = 0;
   return room;
@@ -33,10 +34,13 @@ function createRoom({ bed = 'kid', humans = ['ann', 'bo'], bots = 3, lag = 0.1, 
 function startRound(room) {
   room.round++;
   room.rid = `m1:r${room.round}`;
+  room.twist = room.twists === false ? '' : twistFor('m1', room.round);
   room.t = 0;
   room.ended = null;
   room.wire.length = 0;
   room.acts.length = 0;
+  room.grabs.length = 0;
+  room.hits.length = 0;
   const m = { phase: 'round', seats: room.seats, roundId: room.rid, data: { falls: [], winner: '', endT: 0 } };
   m.setData = (fn) => fn(m.data);
   m.endRound = (points) => {
@@ -51,7 +55,7 @@ function startRound(room) {
 /** A page for player `id` (a fresh load: a new world, a new referee, its brain playing for it as ?autoplay does). */
 function openPage(room, id, lastPresence = null) {
   const page = {
-    id, world: createWorld(room.bed), referee: createReferee(), slamGate: rateGate(0.9), pillowGate: rateGate(3.3),
+    id, world: createWorld(room.bed), referee: createReferee(), slamGate: rateGate(0.9), pillowGate: rateGate(3.3), otherGate: rateGate(0.3),
     brain: createBrain('pro', 0.6, `${room.seed}:${id}`), presence: lastPresence, pending: [], seen: 0, sentAt: -1,
   };
   room.pages.set(id, page);
@@ -62,7 +66,7 @@ function openPage(room, id, lastPresence = null) {
 /** What main.js's populateRound does: every seat on the bed, the fallen out, and this page's own monkeys from its presence. */
 function populate(room, page) {
   const w = page.world;
-  w.reset(room.bed, room.t, { lobby: false, roundId: room.rid });
+  w.reset(room.bed, room.t, { lobby: false, roundId: room.rid, seed: room.rid, twist: room.twist });
   const isHost = room.host === page.id;
   for (const s of room.seats) {
     const role = s.id === page.id ? 'me' : s.bot && isHost ? 'bot' : 'remote';
@@ -71,7 +75,7 @@ function populate(room, page) {
     e.spec = s.bot ? brainSpec(room, s) : null;
   }
   page.seen = room.match.data.falls.length;
-  const mp = checkPresence(page.presence, w.bed, 6);
+  const mp = checkPresence(page.presence, w.bed);
   if (mp && mp.r === room.rid) {
     if (mp.m && !w.restore(page.id, mp.m)) report(room, page, page.id, '', mp.t, '');
     if (isHost) for (const [id, s] of mp.b) if (w.get(id)?.role === 'bot' && !w.restore(id, s)) report(room, page, id, '', mp.t, '', true);
@@ -103,7 +107,7 @@ function frame(room, f) {
     const seat = room.seats.find((s) => s.id === page.id);
     let input = { x: 0, z: 0, slam: false };
     if (me && !me.body.out && !seat?.away) {
-      const view = { bed: w.bed, bodies: [...w.entries.values()].map((e) => e.body), waves: w.waves, level: w.level, slamsOn: w.t >= w.grace, leader: '', alive: [...w.entries.values()].filter((e) => !e.body.out).length };
+      const view = { bed: w.bed, bodies: [...w.entries.values()].map((e) => e.body), waves: w.waves, level: w.level, slamsOn: w.t >= w.grace, leader: '', alive: [...w.entries.values()].filter((e) => !e.body.out).length, toys: w.liveToys().filter((t) => !t.taken) };
       input = page.brain.act(me.body, view, w.t) ?? input;
     }
     // The falls the host wrote: on the bed here too.
@@ -124,11 +128,16 @@ function frame(room, f) {
         page.referee.acted(ev.id, ev.at);
         send(room, page.id, 'msg', pillowMessage(ev.id, ev.n, ev, hostBot));
       } else if (ev.type === 'fall' && (mine || hostBot)) report(room, page, ev.id, ev.by, ev.t, ev.kind, hostBot);
+      else if (ev.type === 'grab' && !ev.remote && (mine || hostBot)) {
+        room.grabs.push({ page: page.id, id: ev.id, k: ev.k });
+        send(room, page.id, 'msg', grabMessage(ev.id, ev.k, ev.at, hostBot));
+      } else if (ev.type === 'hitOut' && (mine || hostBot)) send(room, page.id, 'msg', hitMessage(ev.id, ev.by, ev.at, hostBot));
+      else if (ev.type === 'hit') room.hits.push({ page: page.id, id: ev.id, on: ev.on });
     }
     // Presence, 20 a second (a page that's away sends nothing).
     if (!seat?.away && room.t - page.sentAt >= 0.05) {
       page.sentAt = room.t;
-      const p = { v: 1, s: 'in', r: room.rid, t: Math.round(w.t * 1000) / 1000, p: 0, m: w.get(page.id) ? w.sample(page.id) : null };
+      const p = { v: 2, s: 'in', r: room.rid, t: Math.round(w.t * 1000) / 1000, l: [0, 0, 0, 0, 0], lv: 1, m: w.get(page.id) ? w.sample(page.id) : null };
       if (room.host === page.id) p.b = [...w.entries.values()].filter((e) => e.role === 'bot').map((e) => [e.id, ...w.sample(e.id)]);
       page.presence = clone(p);
       send(room, page.id, 'presence', p);
@@ -152,7 +161,7 @@ function frame(room, f) {
       if (msg.kind === 'msg') {
         const got = acceptMessage(msg.value, msg.from, {
           host: room.host, seats: room.seats, inRound: m.phase === 'round' || m.phase === 'roundEnd', bed: w.bed, now: w.t,
-          slamGate: page.slamGate, pillowGate: page.pillowGate,
+          slamGate: page.slamGate, pillowGate: page.pillowGate, otherGate: page.otherGate,
         });
         if (!got) {
           room.log.push({ refused: msg.value.t, from: msg.from, to: page.id });
@@ -161,9 +170,11 @@ function frame(room, f) {
         page.referee.acted(got.owner, got.m.at);
         if (got.owner === page.id) continue;
         if (got.kind === 's') w.remoteSlam(got.owner, got.m);
-        else w.remotePillow(got.owner, got.m);
+        else if (got.kind === 'p') w.remotePillow(got.owner, got.m);
+        else if (got.kind === 'g') w.remoteGrab(got.owner, got.m);
+        else w.remoteHit(got.owner, got.m.by);
       } else {
-        const p = checkPresence(msg.value, w.bed, 6);
+        const p = checkPresence(msg.value, w.bed);
         if (!p || p.r !== room.rid) continue;
         if (p.m) w.applySample(msg.from, p.m, p.t);
         if (msg.from === room.host) for (const [id, s] of p.b) w.applySample(id, s, p.t);
@@ -366,4 +377,35 @@ test('whole matches over many seeds and every bed: rounds end, no NaN, points ad
   assert.ok(Object.keys(PERSONALITIES).length > 4);
   const avg = lengths / rounds;
   assert.ok(avg > 15 && avg < 80, `average round ${avg.toFixed(1)} s`);
+});
+
+test('toys, twists and hits across pages: one taker per toy that every page agrees on, the same twist everywhere', () => {
+  let grabs = 0;
+  let agreed = 0;
+  let hits = 0;
+  for (let seed = 1; seed <= 4; seed++) {
+    const room = createRoom({ seed, humans: ['ann', 'bo'], bots: 3, lag: 0.08 });
+    openPage(room, 'ann');
+    openPage(room, 'bo');
+    for (let r = 0; r < 3; r++) {
+      startRound(room);
+      for (const page of room.pages.values()) assert.equal(page.world.twist, room.twist, 'every page has the round\'s twist');
+      if (r > 0) assert.ok(room.twist, 'a twist from the second round on');
+      assert.ok(run(room, ROUND.endAt + 1, { until: (rm) => !!rm.ended }), `seed ${seed} round ${r + 1} ended`);
+      run(room, 0.3);
+      const [a, b] = [...room.pages.values()].map((p) => p.world);
+      for (const toy of a.toys) {
+        const other = b.toys.find((t) => t.k === toy.k);
+        assert.ok(other && other.kind === toy.kind && other.x === toy.x, 'the same toys on every page');
+        if (!toy.taken && !other.taken) continue;
+        grabs++;
+        if (toy.taken === other.taken) agreed++;
+      }
+      hits += room.hits.length;
+      assert.ok(room.log.length === 0, `nothing honest was refused: ${JSON.stringify(room.log.slice(0, 3))}`);
+    }
+  }
+  assert.ok(grabs > 10, `toys get grabbed (${grabs})`);
+  assert.ok(agreed / grabs > 0.9, `pages agree on who took a toy (${agreed}/${grabs})`);
+  assert.ok(hits > 0, 'slammers earn hits');
 });

@@ -386,3 +386,38 @@ export function setPlushLook(mat, look) {
   if (pattern === 'galaxy') u.uCloth.value.set('#1B1740');
   u.uScale.value = pattern === 'stripes' || pattern === 'tiger' ? 5 : pattern === 'plaid' ? 4.5 : 7;
 }
+
+/** A flat swatch of pyjama `pattern` printed on `cloth` (a data URL, `size` px), for the wardrobe. */
+const swatchCache = new Map();
+export function patternSwatch(pattern, cloth, clothDark, size = 96) {
+  const key = `${pattern}|${cloth}|${clothDark}|${size}`;
+  if (swatchCache.has(key)) return swatchCache.get(key);
+  const mask = patternMask(pattern);
+  const c = cnv(size, size);
+  const g = c.getContext('2d');
+  // The print at the scale it has on a monkey's belly (about half a tile).
+  g.drawImage(mask, 0, 0, 128, 128, 0, 0, size, size);
+  const img = g.getImageData(0, 0, size, size);
+  const [i1, i2] = PATTERN_INKS[pattern] ?? PATTERN_INKS.plain;
+  const srgb = (hex) => {
+    const o = { r: 0, g: 0, b: 0 };
+    new THREE.Color(hex).getRGB(o, THREE.SRGBColorSpace);
+    return [o.r, o.g, o.b];
+  };
+  const col = (k) => srgb(k === 'dark' ? clothDark : k === 'glow' ? '#B6FF8A' : INK[k] ?? INK.cream);
+  const base = srgb(pattern === 'galaxy' ? '#1B1740' : cloth);
+  const a = col(i1);
+  const b = col(i2);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] / 255;
+    const gg = d[i + 1] / 255;
+    const k0 = Math.max(0, 1 - r - gg);
+    for (let ch = 0; ch < 3; ch++) d[i + ch] = Math.round(Math.min(1, base[ch] * k0 + a[ch] * r + b[ch] * gg) * 255);
+    d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const url = c.toDataURL ? c.toDataURL('image/png') : '';
+  swatchCache.set(key, url);
+  return url;
+}

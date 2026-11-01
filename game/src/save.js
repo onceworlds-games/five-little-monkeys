@@ -1,12 +1,14 @@
-// The player's progress in ow.save: stars per bed, wins, knock-offs, bests, pyjamas, hints already shown.
+// The player's progress in ow.save: stars per bed (the Bedtime Ladder), wins, knock-offs, bests, what the monkey wears,
+// its level, tonight's goals and streak (progress.js), and the hints already shown.
 import { BED_IDS, bedById } from './sim/beds.js';
-import { PATTERNS } from './look.js';
+import { WARDROBE, SLOTS, DEFAULT_LOOK, itemsIn, owns } from './wardrobe.js';
+import { defaultProgress, normalizeProgress, levelOf } from './progress.js';
 
 const KEY = 'fl1';
 
 export function defaultSave() {
   return {
-    v: 1,
+    v: 2,
     stars: Object.fromEntries(BED_IDS.map((id) => [id, [0, 0, 0]])),
     won: Object.fromEntries(BED_IDS.map((id) => [id, 0])),
     best: {},
@@ -14,7 +16,8 @@ export function defaultSave() {
     rounds: 0,
     knockoffs: 0,
     matches: 0,
-    pattern: 'plain',
+    look: { ...DEFAULT_LOOK },
+    progress: defaultProgress(),
     bed: 'kid',
     hints: {},
     played: false,
@@ -37,7 +40,10 @@ export function normalizeSave(raw) {
     const n = Number(raw[k]);
     if (Number.isFinite(n) && n >= 0) s[k] = Math.floor(n);
   }
-  if (PATTERNS.some((p) => p.id === raw.pattern)) s.pattern = raw.pattern;
+  // The look: each slot a known item (a version 1 save had only its pyjama pattern).
+  const look = raw.look && typeof raw.look === 'object' ? raw.look : { pj: raw.pattern };
+  for (const slot of SLOTS) if (itemsIn(slot).some((i) => i.id === look[slot])) s.look[slot] = look[slot];
+  s.progress = normalizeProgress(raw.progress);
   if (BED_IDS.includes(raw.bed)) s.bed = raw.bed;
   if (raw.hints && typeof raw.hints === 'object') for (const [k, v] of Object.entries(raw.hints)) if (typeof v === 'number' && k.length < 20) s.hints[k] = v;
   s.played = raw.played === true;
@@ -53,10 +59,25 @@ export function bedOpen(s, id) {
   return s.stars[BED_IDS[i - 1]][0] === 1;
 }
 
-export const patternOpen = (s, id) => {
-  const p = PATTERNS.find((x) => x.id === id);
-  return !!p && starCount(s) >= p.stars;
+/** What the player has to unlock things with: { level, stars, boxed }. */
+export const ownership = (s) => ({ level: levelOf(s.progress.xp).level, stars: starCount(s), boxed: s.progress.boxed });
+
+/** Does this save own wardrobe item `key` (slot:id)? */
+export const ownsKey = (s, key) => {
+  const item = WARDROBE.find((i) => i.key === key);
+  return !!item && owns(item, ownership(s));
 };
+
+/** The look to wear: the saved one, with anything no longer owned put back to the slot's first item. */
+export function wornLook(s) {
+  const own = ownership(s);
+  const out = {};
+  for (const slot of SLOTS) {
+    const item = itemsIn(slot).find((i) => i.id === s.look[slot]);
+    out[slot] = item && owns(item, own) ? item.id : itemsIn(slot)[0].id;
+  }
+  return out;
+}
 
 export async function loadSave(ow) {
   try {
@@ -112,7 +133,7 @@ export function bankMatch(s, match) {
   s.knockoffs += Math.max(0, Math.floor(match.knockoffs ?? 0));
   if (nextBed && !wasOpen && bedOpen(s, nextBed)) news.unlocked = nextBed;
   const after = starCount(s);
-  for (const p of PATTERNS) if (p.stars > before && p.stars <= after) news.patterns.push(p.id);
+  for (const i of WARDROBE) if (i.unlock.stars > before && i.unlock.stars <= after) news.patterns.push(i.key);
   return news;
 }
 

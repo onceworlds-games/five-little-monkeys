@@ -4,7 +4,7 @@ import { createMatch, createHost, t } from '@onceworlds/sdk/match';
 import { createBots } from '@onceworlds/sdk/bots';
 import { BED_IDS } from './sim/beds.js';
 import { BOT_NAMES } from './look.js';
-import { acceptMessage, checkPresence, rateGate, slamMessage, pillowMessage, ID_RE } from './protocol.js';
+import { acceptMessage, checkPresence, rateGate, slamMessage, pillowMessage, grabMessage, hitMessage, ID_RE } from './protocol.js';
 import { createReferee } from './referee.js';
 
 export const SETTINGS = [
@@ -34,8 +34,8 @@ const DATA = t.object({
 /**
  * hooks: {
  *   simT(): the round's sim time on this page (null when its bed isn't running this round),
- *   lobbyT(): the lobby bed's time (null outside the lobby), bed(): the bed in play, patterns: how many pyjama patterns,
- *   onSlam(owner, m), onPillow(owner, m), onPresence(player, p),
+ *   lobbyT(): the lobby bed's time (null outside the lobby), bed(): the bed in play,
+ *   onSlam(owner, m), onPillow(owner, m), onGrab(owner, m), onHit(owner, m), onPresence(player, p),
  * }
  */
 export function createNet(ow, room, hooks) {
@@ -43,6 +43,7 @@ export function createNet(ow, room, hooks) {
   const referee = createReferee();
   const slamGate = rateGate(0.9);
   const pillowGate = rateGate(3.3);
+  const otherGate = rateGate(0.3);
   const pendingFalls = [];
   const simNow = (m) => hooks.simT() ?? m.elapsed / 1000;
 
@@ -85,16 +86,19 @@ export function createNet(ow, room, hooks) {
       now: hooks.simT() ?? hooks.lobbyT(),
       slamGate,
       pillowGate,
+      otherGate,
     });
     if (!got) return;
-    referee.acted(got.owner, got.m.at);
+    if (got.kind === 's' || got.kind === 'p') referee.acted(got.owner, got.m.at);
     if (got.kind === 's') hooks.onSlam(got.owner, got.m);
-    else hooks.onPillow(got.owner, got.m);
+    else if (got.kind === 'p') hooks.onPillow(got.owner, got.m);
+    else if (got.kind === 'g') hooks.onGrab?.(got.owner, got.m);
+    else hooks.onHit?.(got.owner, got.m);
   });
 
   room.on('presence', (player) => {
     if (!player || player.id === room.me?.id) return;
-    const p = checkPresence(player.presence, hooks.bed(), hooks.patterns);
+    const p = checkPresence(player.presence, hooks.bed());
     if (!p) return;
     if (p.b.length && player.id !== room.host) p.b = [];
     hooks.onPresence(player, p);
@@ -116,6 +120,14 @@ export function createNet(ow, room, hooks) {
     sendPillow(owner, n, ev, bot) {
       referee.acted(owner, ev.at);
       room.send(pillowMessage(owner, n, ev, bot));
+    },
+    /** This page's monkey (or the host's bot) took toy `k`. */
+    sendGrab(owner, k, at, bot) {
+      room.send(grabMessage(owner, k, at, bot));
+    },
+    /** This page's monkey (or the host's bot) was launched by `by`'s ring, and `by` runs on another page. */
+    sendHit(owner, by, at, bot) {
+      room.send(hitMessage(owner, by, at, bot));
     },
     /** This page's monkey (or a bot, on the host) fell off. */
     fell(id, by, at, kind, bot) {

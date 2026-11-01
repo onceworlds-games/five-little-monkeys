@@ -1,8 +1,10 @@
-// Effects: puffs of quilt fluff and feathers, stars, launch trails, blob shadows that show each monkey's height, the
-// player's ring of light with the slam cooldown, the pillow aim circle, and flying pillows. Pooled; nothing allocates per
-// frame.
+// Effects: puffs of quilt fluff, lint off the ring crests, feathers, stars, sparkles on a perfect pump, impact dust,
+// confetti, shock rings where a slam lands, launch trails (puffs, feathers, stars, bubbles, confetti, Zs, hearts, bolts,
+// fireflies), blob shadows that show each monkey's height, the player's rings and flying pillows. Pooled; nothing
+// allocates per frame.
 import * as THREE from 'three';
 import { blobTexture, featherTexture, starTexture } from './textures.js';
+import { glintTexture, heartTexture, boltTexture, zTexture, bubbleTexture, chipTexture, lintTexture } from './sprites.js';
 
 const PARTICLE_VS = /* glsl */ `
 attribute float aSize;
@@ -52,6 +54,8 @@ class Particles {
     this.age = new Float32Array(max);
     this.size0 = new Float32Array(max);
     this.float = new Float32Array(max);
+    this.grav = new Float32Array(max);
+    this.grow = new Float32Array(max);
     this.next = 0;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
@@ -90,6 +94,8 @@ class Particles {
     this.rot[i] = Math.random() * 6.28;
     this.spin[i] = (Math.random() - 0.5) * (o.spin ?? 4);
     this.float[i] = o.float ?? 0;
+    this.grav[i] = o.g ?? 1;
+    this.grow[i] = o.grow ?? 0.3;
     const c = o.color ?? [1, 1, 1];
     this.color[i * 3] = c[0];
     this.color[i * 3 + 1] = c[1];
@@ -112,13 +118,13 @@ class Particles {
       const drag = Math.max(0, 1 - this.drag * dt);
       this.vel[i * 3] *= drag;
       this.vel[i * 3 + 2] *= drag;
-      this.vel[i * 3 + 1] = this.vel[i * 3 + 1] * (this.float[i] ? Math.max(0, 1 - 3 * dt) : 1) + (this.float[i] ? -0.6 : this.gravity) * dt;
+      this.vel[i * 3 + 1] = this.vel[i * 3 + 1] * (this.float[i] ? Math.max(0, 1 - 3 * dt) : 1) + (this.float[i] ? -0.6 : this.gravity) * this.grav[i] * dt;
       this.pos[i * 3] += this.vel[i * 3] * dt + (this.float[i] ? Math.sin(this.age[i] * 5 + i) * 0.6 * dt : 0);
       this.pos[i * 3 + 1] += this.vel[i * 3 + 1] * dt;
       this.pos[i * 3 + 2] += this.vel[i * 3 + 2] * dt;
       this.rot[i] += this.spin[i] * dt;
       this.alpha[i] = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
-      this.size[i] = this.size0[i] * (1 + 0.3 * k);
+      this.size[i] = this.size0[i] * (1 + this.grow[i] * k);
     }
     const g = this.points.geometry;
     g.attributes.position.needsUpdate = true;
@@ -234,14 +240,59 @@ function pillowGeometry() {
   return g;
 }
 
+const SHOCK_FS = /* glsl */ `
+uniform vec3 uColor;
+uniform float uK;
+uniform float uAlpha;
+varying vec2 vUv;
+void main() {
+  float r = length(vUv * 2.0 - 1.0);
+  float w = mix(0.3, 0.05, uK);
+  float ring = smoothstep(1.0 - w, 1.0 - w * 0.45, r) * (1.0 - smoothstep(0.97, 1.0, r));
+  float a = ring * uAlpha * (1.0 - uK) * (1.0 - uK);
+  if (a < 0.01) discard;
+  gl_FragColor = vec4(uColor * 1.6, a);
+  #include <colorspace_fragment>
+}`;
+
+function shockMesh() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color() }, uK: { value: 1 }, uAlpha: { value: 1 } },
+    vertexShader: RING_VS,
+    fragmentShader: SHOCK_FS,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  m.rotation.x = -Math.PI / 2;
+  m.renderOrder = 4;
+  m.visible = false;
+  return m;
+}
+
+const TRAIL_HEX = { bubbles: '#BFE8FF', hearts: '#FF6F91', bolts: '#FFE14A', zzz: '#CFE0FF', fireflies: '#E9FF8A' };
+const CONFETTI = ['#FF5A5A', '#FFC23A', '#5FE3B0', '#3C86F0', '#C77DFF', '#FFF1D6'];
+
 export function createFx(scene) {
-  const puffs = new Particles(blobTexture(0.2), 260, { gravity: -3, drag: 2.5 });
-  const feathers = new Particles(featherTexture(), 120, { gravity: -1, drag: 2 });
-  const stars = new Particles(starTexture(), 90, { gravity: -5, drag: 1 });
-  scene.add(puffs.points, feathers.points, stars.points);
+  const puffs = new Particles(blobTexture(0.2), 320, { gravity: -3, drag: 2.5 });
+  const feathers = new Particles(featherTexture(), 140, { gravity: -1, drag: 2 });
+  const stars = new Particles(starTexture(), 110, { gravity: -5, drag: 1 });
+  const glints = new Particles(glintTexture(), 160, { additive: true, gravity: 1.2, drag: 2.6 });
+  const lint = new Particles(lintTexture(), 160, { gravity: -0.8, drag: 2.2 });
+  const chips = new Particles(chipTexture(), 220, { gravity: -3.2, drag: 2.2 });
+  const shapes = {
+    hearts: new Particles(heartTexture(), 60, { gravity: 0.6, drag: 2 }),
+    bolts: new Particles(boltTexture(), 60, { additive: true, gravity: 0, drag: 3 }),
+    zzz: new Particles(zTexture(), 60, { gravity: 0.9, drag: 2 }),
+    bubbles: new Particles(bubbleTexture(), 80, { gravity: 0.7, drag: 1.6 }),
+  };
+  const systems = [puffs, feathers, stars, glints, lint, chips, ...Object.values(shapes)];
+  for (const p of systems) scene.add(p.points);
 
   // Blob shadows: one instanced mesh.
-  const MAXB = 8;
+  const MAXB = 14;
   const blobs = new THREE.InstancedMesh(
     new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: blobTexture(0.35), color: '#1A0E22', transparent: true, depthWrite: false, opacity: 0.62, polygonOffset: true, polygonOffsetFactor: -4 }),
@@ -264,6 +315,15 @@ export function createFx(scene) {
 
   const approach = approachMesh();
   scene.add(approach);
+
+  // Shock rings where a slam lands.
+  const shocks = [];
+  for (let i = 0; i < 6; i++) {
+    const m = shockMesh();
+    scene.add(m);
+    shocks.push({ mesh: m, age: 0, life: 0, r0: 0, r1: 0 });
+  }
+  let shockNext = 0;
 
   // Dizzy stars circling heads.
   const MAXS = 18;
@@ -292,31 +352,101 @@ export function createFx(scene) {
     col.set(hex);
     return [col.r, col.g, col.b];
   };
+  const CREAM = [1, 0.96, 0.88];
 
-  return {
+  const fx = {
     puff(x, y, z, n, o = {}) {
       for (let i = 0; i < n; i++) puffs.emit(x, y, z, o);
     },
     feathers(x, y, z, n, o = {}) {
-      for (let i = 0; i < n; i++) feathers.emit(x, y, z, { size: 0.35, life: 2.2, speed: 3, float: 1, spin: 3, ...o });
+      const burst = o.burst ? { speed: 5, up: 1.4 } : {};
+      for (let i = 0; i < n; i++) feathers.emit(x, y, z, { size: 0.35, life: 2.2, speed: 3, float: 1, spin: 3, ...burst, ...o });
     },
     stars(x, y, z, n, o = {}) {
       for (let i = 0; i < n; i++) stars.emit(x, y, z, { size: 0.45, life: 0.9, speed: 3.5, ...o });
     },
-    /** A ring of fluff where a slam lands, in the slammer's colour. */
-    slamBurst(x, y, z, e, hex) {
+    /** Glints that rise and wink out (a perfect pump, a grab), tinted `hex`. */
+    sparkle(x, y, z, n, hex = '#FFE27A', o = {}) {
       const c = rgb(hex);
-      const n = Math.round(10 + e * 10);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random();
+        glints.emit(x + Math.cos(a) * 0.35, y, z + Math.sin(a) * 0.35, { vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, speed: 0.6, up: 1.3, size: 0.42, life: 0.55, spin: 2, color: c, grow: -0.6, ...o });
+      }
+    },
+    /** Soft floor dust where a monkey hits the boards. */
+    dust(x, y, z, n) {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        puffs.emit(x, y, z, { vx: Math.cos(a) * 2.6, vz: Math.sin(a) * 2.6, speed: 0.5, up: 0.4, size: 0.75, life: 1.1, g: -0.15, color: [0.78, 0.7, 0.6], grow: 1.2 });
+      }
+    },
+    /** Paper confetti, falling and fluttering. */
+    confetti(x, y, z, n, o = {}) {
+      for (let i = 0; i < n; i++) chips.emit(x, y, z, { speed: o.speed ?? 4, up: o.up ?? 1.4, size: 0.24, life: 2.6, spin: 14, color: rgb(CONFETTI[i % CONFETTI.length]), float: o.float ?? 0, jitter: o.jitter ?? 0.4 });
+    },
+    /** A wisp of lint kicked off a ring's crest. */
+    lint(x, y, z, hex) {
+      lint.emit(x, y, z, { speed: 0.6, up: 1.6, size: 0.2, life: 0.9, spin: 2, color: hex ? rgb(hex) : CREAM, grow: 0.5 });
+    },
+    /** Where a slam lands: a shock ring, a ring of fluff in the slammer's colour, lint; gold and bigger for a Mega Slam. */
+    slamBurst(x, y, z, e, hex, mega = false) {
+      const c = rgb(mega ? '#FFC23A' : hex);
+      const n = Math.round((10 + e * 10) * (mega ? 1.6 : 1));
+      const sp = (2 + 2 * e) * (mega ? 1.4 : 1);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
-        puffs.emit(x + Math.cos(a) * 0.3, y + 0.05, z + Math.sin(a) * 0.3, { vx: Math.cos(a) * (2 + 2 * e), vz: Math.sin(a) * (2 + 2 * e), speed: 0.4, up: 0.8, size: 0.55, life: 0.55, color: c });
+        puffs.emit(x + Math.cos(a) * 0.3, y + 0.05, z + Math.sin(a) * 0.3, { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, speed: 0.4, up: 0.8, size: 0.55, life: 0.55, color: c });
       }
-      for (let i = 0; i < 6; i++) puffs.emit(x, y + 0.1, z, { speed: 1.2, up: 1.6, size: 0.5, life: 0.5, color: [1, 0.96, 0.88] });
+      for (let i = 0; i < 6; i++) puffs.emit(x, y + 0.1, z, { speed: 1.2, up: 1.6, size: 0.5, life: 0.5, color: CREAM });
+      for (let i = 0; i < 6 + e * 6; i++) lint.emit(x, y + 0.1, z, { speed: 2.4, up: 1.8, size: 0.22, life: 1.1, spin: 3, color: CREAM, grow: 0.4 });
+      const s = shocks[shockNext];
+      shockNext = (shockNext + 1) % shocks.length;
+      s.mesh.position.set(x, y + 0.06, z);
+      s.mesh.material.uniforms.uColor.value.set(mega ? '#FFC23A' : hex);
+      s.mesh.material.uniforms.uAlpha.value = mega ? 1 : 0.75;
+      s.age = 0;
+      s.life = mega ? 0.5 : 0.32;
+      s.r0 = 0.6;
+      s.r1 = (2.2 + e * 1.4) * (mega ? 1.6 : 1);
+      s.mesh.visible = true;
+      if (mega) {
+        fx.sparkle(x, y + 0.3, z, 14, '#FFD36A', { speed: 2.4, up: 2 });
+        fx.confetti(x, y + 0.4, z, 10, { speed: 3 });
+      }
     },
+    /** A toy grabbed: a burst in its colours. */
+    grab(x, y, z, kind) {
+      const hex = kind === 'mega' ? '#FFC23A' : kind === 'shield' ? '#FFF1D6' : '#7FE08A';
+      fx.sparkle(x, y, z, 16, hex, { speed: 2.2, up: 2.2, life: 0.7 });
+      for (let i = 0; i < 10; i++) puffs.emit(x, y, z, { speed: 2.6, up: 1, size: 0.4, life: 0.45, color: rgb(hex) });
+      if (kind === 'shield') fx.feathers(x, y, z, 8, { burst: true });
+      if (kind === 'spring') for (let i = 0; i < 8; i++) shapes.bolts.emit(x, y, z, { speed: 3, up: 1.6, size: 0.36, life: 0.5, color: rgb('#B6FF7A'), spin: 6 });
+      if (kind === 'mega') fx.confetti(x, y + 0.2, z, 12, { speed: 3 });
+    },
+    /** A launch trail behind a flying monkey, of kind `kind` (its wardrobe trail), tinted by `hex` where it's plain. */
     trail(x, y, z, hex, kind = 'none') {
-      if (kind === 'feathers') feathers.emit(x, y, z, { size: 0.3, life: 1.2, speed: 0.4, float: 1, spin: 3, color: [1, 1, 1] });
-      else if (kind === 'stars') stars.emit(x, y, z, { size: 0.32, life: 0.6, speed: 0.3, up: 0, color: rgb('#FFE27A') });
-      else puffs.emit(x, y, z, { speed: 0.1, up: 0, size: 0.42, life: 0.5, jitter: 0.05, color: rgb(hex) });
+      switch (kind) {
+        case 'feathers':
+          feathers.emit(x, y, z, { size: 0.3, life: 1.2, speed: 0.4, float: 1, spin: 3, color: [1, 1, 1] });
+          break;
+        case 'stars':
+          stars.emit(x, y, z, { size: 0.32, life: 0.6, speed: 0.3, up: 0, color: rgb('#FFE27A') });
+          break;
+        case 'confetti':
+          chips.emit(x, y, z, { size: 0.2, life: 1.2, speed: 0.6, up: 0.2, spin: 12, color: rgb(CONFETTI[Math.floor(Math.random() * CONFETTI.length)]) });
+          break;
+        case 'fireflies':
+          glints.emit(x, y, z, { size: 0.3, life: 1.4, speed: 0.6, up: 0.4, g: 0.2, color: rgb(TRAIL_HEX.fireflies), grow: -0.5, spin: 0 });
+          break;
+        case 'bubbles':
+        case 'hearts':
+        case 'bolts':
+        case 'zzz':
+          shapes[kind].emit(x, y, z, { size: kind === 'bubbles' ? 0.34 : 0.3, life: 0.9, speed: 0.4, up: 0.3, spin: kind === 'zzz' ? 0.6 : 2, color: rgb(TRAIL_HEX[kind]), grow: 0.2 });
+          break;
+        default:
+          puffs.emit(x, y, z, { speed: 0.1, up: 0, size: 0.42, life: 0.5, jitter: 0.05, color: rgb(hex) });
+      }
     },
     /** The pump's approach ring: `ttl` seconds until the feet land (negative: in the quilt), `grade` 1 good, 2 perfect. */
     approach(x, y, z, hex, ttl, grade, visible) {
@@ -347,13 +477,13 @@ export function createFx(scene) {
       dizzyStars.count = dizzyN;
       dizzyStars.instanceMatrix.needsUpdate = true;
     },
-    /** shadows: [{ x, y (surface), z, h (height above it), alpha }] */
+    /** shadows: [{ x, y (surface), z, h (height above it), size }] */
     blobs(list) {
       let n = 0;
       for (const b of list) {
         if (n >= MAXB) break;
         const k = Math.max(0.25, 1 - b.h * 0.22);
-        const size = 1.15 * k;
+        const size = (b.size ?? 1.15) * k;
         sv.set(size, 1, size);
         pv.set(b.x, b.y + 0.02, b.z);
         mtx.compose(pv, q, sv);
@@ -377,9 +507,9 @@ export function createFx(scene) {
       aim.material.uniforms.uColor.value.set(hex);
       aim.material.uniforms.uFill.value = fill;
     },
-    throwPillow(fx, fy, fz, x, y, z, t0, at, hex) {
+    throwPillow(fx0, fy, fz, x, y, z, t0, at, hex) {
       const p = pillows.find((pp) => !pp.live) ?? pillows[0];
-      p.from.set(fx, fy, fz);
+      p.from.set(fx0, fy, fz);
       p.to.set(x, y, z);
       p.t0 = t0;
       p.at = at;
@@ -389,9 +519,19 @@ export function createFx(scene) {
       p.mesh.visible = true;
     },
     update(dt, t, scale) {
-      puffs.update(dt, scale);
-      feathers.update(dt, scale);
-      stars.update(dt, scale);
+      for (const p of systems) p.update(dt, scale);
+      for (const s of shocks) {
+        if (!s.mesh.visible) continue;
+        s.age += dt;
+        const k = s.age / s.life;
+        if (k >= 1) {
+          s.mesh.visible = false;
+          continue;
+        }
+        const e = 1 - (1 - k) * (1 - k) * (1 - k);
+        s.mesh.scale.setScalar((s.r0 + (s.r1 - s.r0) * e) * 2);
+        s.mesh.material.uniforms.uK.value = k;
+      }
       for (const p of pillows) {
         if (!p.live) continue;
         const k = (t - p.t0) / Math.max(0.05, p.at - p.t0);
@@ -407,13 +547,13 @@ export function createFx(scene) {
       }
     },
     clear() {
-      puffs.clear();
-      feathers.clear();
-      stars.clear();
+      for (const p of systems) p.clear();
+      for (const s of shocks) s.mesh.visible = false;
       for (const p of pillows) {
         p.live = false;
         p.mesh.visible = false;
       }
     },
   };
+  return fx;
 }

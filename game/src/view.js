@@ -8,8 +8,9 @@ import { ringUniforms, writeRings } from './render/quilt.js';
 import { createMonkey, FURS } from './render/monkey.js';
 import { loadBodies } from './render/bodies.js';
 import { createFx } from './render/fx.js';
-import { fieldAt } from './sim/waves.js';
-import { surfaceUnder } from './sim/beds.js';
+import { createToys } from './render/toys.js';
+import { fieldAt, ampAt } from './sim/waves.js';
+import { surfaceUnder, inside } from './sim/beds.js';
 import { CONTACT, SLAM, PILLOW, PUMP } from './sim/config.js';
 import { v0For, timeToLand, pressMeaning } from './sim/body.js';
 
@@ -40,6 +41,7 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   const { scene, camera } = stage;
   const u = ringUniforms();
   const fx = createFx(scene);
+  const toys = createToys(scene);
   let room = null;
   let bedId = '';
   let q = quality;
@@ -66,6 +68,19 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     stage.setQuality(q, bed.box);
     stage.moon.target.position.set(0, 0, (bed.box.z0 + bed.box.z1) / 2);
     fx.clear();
+    toys.clear();
+  }
+
+  // Lights Out: the room's own lights dim in room.update; the moon, the fill and the sky dim here.
+  const base0 = { moon: stage.moon.intensity, hemi: stage.hemi.intensity, fill: stage.fill.intensity, env: scene.environmentIntensity };
+  let darkNow = 0;
+  function setDark(k) {
+    if (Math.abs(k - darkNow) < 0.002) return;
+    darkNow = k;
+    stage.moon.intensity = base0.moon * (1 - k * 0.55);
+    stage.hemi.intensity = base0.hemi * (1 - k * 0.8);
+    stage.fill.intensity = base0.fill * (1 - k * 0.9);
+    scene.environmentIntensity = base0.env * (1 - k * 0.7);
   }
 
   function setQuality(next, bed) {
@@ -267,10 +282,27 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
       keep.add(x.id);
       const m = monkeyFor(x.id, x.look);
       if (!m) continue;
-      const s = { x: x.spot.x, y: x.spot.y, z: x.spot.z, yaw: x.spot.yaw ?? 0, scale: SCALE, mode: x.wave ? 'wave' : x.mode ?? 'sit', dance: x.dance, lookAt: camera.position };
+      const s = { x: x.spot.x, y: x.spot.y, z: x.spot.z, yaw: x.spot.yaw ?? 0, scale: SCALE, mode: x.wave ? 'wave' : x.mode ?? 'sit', dance: x.dance ?? x.look.dance, clip: x.clip, lookAt: camera.position };
       m.mk.update(s, dt);
     }
     dropMissing(keep);
+    // Toys on the quilt, the pillow rain, and lint kicked off the crests.
+    toys.update(world.liveToys?.(tw) ?? [], world.fallingRain?.(tw) ?? [], tw, opts.anim, (si, x, z) => topAt(world, si, x, z), blobs);
+    if (!opts.noLint) {
+      for (const w of world.waves) {
+        const tau = tw - w.t0;
+        if (tau < 0.05 || tau > w.life) continue;
+        const r = w.c * tau;
+        const a = ampAt(w, r);
+        if (a < 0.12 || Math.random() > dt * 26 * Math.min(1.5, a)) continue;
+        const ang = Math.random() * Math.PI * 2;
+        const x = w.x + Math.cos(ang) * r;
+        const z = w.z + Math.sin(ang) * r;
+        const su = bed.surfaces[w.si];
+        if (!su || !inside(su, x, z, 0)) continue;
+        fx.lint(x, topAt(world, w.si, x, z) + 0.05, z, Math.random() < 0.35 ? opts.colorOf?.(w.owner) : null);
+      }
+    }
     fx.blobs(blobs);
     fx.dizzyEnd();
     // The player's rings: the pump's approach ring as the feet come down, the slam's aim when high, the pillow's aim.
@@ -344,8 +376,70 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     return { x: (tmpV.x * 0.5 + 0.5) * w, y: (-tmpV.y * 0.5 + 0.5) * h, behind: tmpV.z > 1 };
   }
 
+  // Portraits: a head-and-shoulders picture of a look, from the real plush, on a small renderer of its own (so it is
+  // tone-mapped like the game), one per frame, cached by look.
+  const shots = new Map();
+  const queue = [];
+  let pr = null;
+  function portraitKey(look) {
+    const kind = bodyOf(look);
+    const pl = plushLook(look, kind);
+    return `${kind}|${pl.extra}|${look.hex}|${pl.symbol}|${pl.pattern}|${pl.hat}|${pl.fur}`;
+  }
+  /** A data URL of `look`'s portrait, or null while it's being drawn. */
+  function portrait(look) {
+    if (!look) return null;
+    const key = portraitKey(look);
+    const got = shots.get(key);
+    if (got) return got;
+    if (!queue.some((x) => x.key === key)) queue.push({ key, look });
+    return null;
+  }
+  function shootOne() {
+    if (!bodies || !queue.length) return;
+    const { key, look } = queue.shift();
+    try {
+      if (!pr) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 160;
+        const r = new THREE.WebGLRenderer({ canvas: c, alpha: true, antialias: true, preserveDrawingBuffer: true });
+        r.outputColorSpace = THREE.SRGBColorSpace;
+        r.toneMapping = THREE.ACESFilmicToneMapping;
+        r.toneMappingExposure = 1.1;
+        r.setPixelRatio(1);
+        r.setSize(160, 160, false);
+        r.setClearColor(0x000000, 0);
+        const sc = new THREE.Scene();
+        sc.environment = scene.environment;
+        sc.environmentIntensity = 0.35;
+        const key1 = new THREE.DirectionalLight('#FFE2C0', 2.6);
+        key1.position.set(2, 3, 4);
+        const rim = new THREE.DirectionalLight('#9DB8FF', 2.2);
+        rim.position.set(-3, 2.5, -3);
+        sc.add(key1, rim, new THREE.HemisphereLight('#8090C0', '#402838', 1.1));
+        const cam = new THREE.PerspectiveCamera(26, 1, 0.05, 20);
+        pr = { r, sc, cam, c };
+      }
+      const kind = bodyOf(look);
+      const mk = createMonkey({ data: bodies[kind].mesh, anchors: bodies[kind].anchors, body: kind, look: plushLook(look, kind), quality: 'high', shadows: false });
+      pr.sc.add(mk.group);
+      const eye = new THREE.Vector3(0.6, 1.1, 3);
+      for (let i = 0; i < 12; i++) mk.update({ x: 0, y: 0, z: 0, yaw: 0, scale: 1, mode: 'stand', mouth: 'grin', lookAt: eye }, 1 / 30);
+      const head = mk.headWorld(new THREE.Vector3());
+      pr.cam.position.set(head.x + 0.42, head.y + 0.28, head.z + 2.3);
+      pr.cam.lookAt(head.x, head.y - 0.08, head.z);
+      pr.r.render(pr.sc, pr.cam);
+      shots.set(key, pr.c.toDataURL('image/png'));
+      mk.dispose();
+    } catch (err) {
+      console.warn('portrait', err);
+      shots.set(key, '');
+    }
+  }
+
   return {
-    stage, fx, u, setBed, setQuality, draw, frame, render, toScreen, rugSpot, ready,
+    stage, fx, u, setBed, setQuality, draw, frame, render, toScreen, rugSpot, ready, setDark, portrait,
+    shootPortraits: shootOne,
     get room() {
       return room;
     },

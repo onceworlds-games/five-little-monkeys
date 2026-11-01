@@ -1,5 +1,47 @@
-// Every sound is synthesized: springs, whumps, slide whistles, bonks, the toy-piano verse, and a small sequencer playing
-// the game's bouncy tune (a music-box version on the title and in the lobby). Silent until the first tap.
+// Layered sound: sampled soft impacts, bed creaks, cloth whooshes, footsteps and the door (Kenney, CC0; see CREDITS.md)
+// under synthesized springs that climb the scale with a perfect streak, slide whistles, bonks, the toy-piano verse, and
+// a small sequencer playing the game's bouncy tune, which adds layers as monkeys fall (a music-box version on the title
+// and in the lobby). Silent until the first tap.
+
+const SAMPLE_URLS = import.meta.glob('./assets/sfx/*.mp3', { eager: true, query: '?url', import: 'default' });
+const samples = new Map();
+/** Decode every sample once (after the first tap), and skip each file's lead-in silence. */
+function loadSamples() {
+  for (const [path, url] of Object.entries(SAMPLE_URLS)) {
+    const name = path.split('/').pop().replace(/\.mp3$/, '');
+    fetch(url)
+      .then((r) => r.arrayBuffer())
+      .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+      .then((buf) => {
+        const d = buf.getChannelData(0);
+        let i = 0;
+        while (i < d.length && Math.abs(d[i]) < 0.01) i++;
+        samples.set(name, { buf, start: Math.max(0, i - 32) / buf.sampleRate });
+      })
+      .catch(() => {});
+  }
+}
+/** Play sample `name` (or one of a list) at volume `vol`, playback rate `rate`, `delay` seconds from now. */
+function play(name, vol = 1, rate = 1, delay = 0) {
+  if (!on()) return;
+  const n = Array.isArray(name) ? name[Math.floor(Math.random() * name.length)] : name;
+  const sm = samples.get(n);
+  if (!sm) return;
+  const src = ctx.createBufferSource();
+  src.buffer = sm.buf;
+  src.playbackRate.value = rate;
+  const g = ctx.createGain();
+  g.gain.value = vol;
+  src.connect(g).connect(sfxBus);
+  src.start(now() + delay, sm.start);
+}
+const HEAVY = ['impactSoft_heavy_000', 'impactSoft_heavy_001', 'impactSoft_heavy_002', 'impactSoft_heavy_003', 'impactSoft_heavy_004'];
+const MEDIUM = ['impactSoft_medium_000', 'impactSoft_medium_001', 'impactSoft_medium_002'];
+const CLOTH = ['cloth1', 'cloth2', 'cloth3', 'cloth4'];
+const CREAK = ['creak1', 'creak2', 'creak3'];
+const STEPS = ['footstep00', 'footstep01', 'footstep02', 'footstep03'];
+// The pentatonic ladder a perfect streak climbs.
+const LADDER = [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88];
 
 let ctx = null;
 let master = null;
@@ -38,6 +80,7 @@ export function startAudio() {
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   ctx.resume().catch(() => {});
+  loadSamples();
 }
 
 export const audioReady = () => !!ctx && ctx.state === 'running';
@@ -89,10 +132,11 @@ const now = () => ctx.currentTime + 0.005;
 
 export const sfx = {
   /** The springy boing of a bounce: pitch by height. */
-  boing(height = 1, vol = 1) {
+  boing(height = 1, vol = 1, tier = 0) {
     if (!on()) return;
     const t = now();
-    const f = 180 + height * 60;
+    const f = (180 + height * 60) * (1 + tier * 0.12);
+    if (vol > 0.5) play(MEDIUM, 0.18 * vol, 0.9 + Math.random() * 0.2);
     const o = osc('sine', f, t, 0.22, 0.12 * vol, sfxBus, { f1: f * 1.9 });
     const lfo = ctx.createOscillator();
     const lg = ctx.createGain();
@@ -102,15 +146,25 @@ export const sfx = {
     lfo.start(t);
     lfo.stop(t + 0.3);
   },
-  tuck() {
+  /** The slam's tuck: a cloth whoosh, higher from a higher bounce. */
+  tuck(tier = 0) {
     if (!on()) return;
     const t = now();
-    osc('square', 900, t, 0.03, 0.05, sfxBus, { f1: 500 });
+    play(CLOTH, 0.5, 1.15 + tier * 0.08);
+    osc('square', 900 + tier * 120, t, 0.03, 0.05, sfxBus, { f1: 500 });
   },
-  whump(e = 1, vol = 1) {
+  /** A slam lands: a soft heavy impact and a sub thump, a creak on the big ones, a shimmer on a Mega Slam. */
+  whump(e = 1, vol = 1, mega = false) {
     if (!on()) return;
     const t = now();
-    const k = Math.min(1.8, e);
+    const k = Math.min(2.1, e);
+    play(HEAVY, (0.55 + k * 0.25) * vol, 0.8 + Math.random() * 0.12 - k * 0.05);
+    if (k > 0.9 || mega) play(CREAK, 0.35 * vol, 0.85 + Math.random() * 0.3, 0.05);
+    if (mega) {
+      [72, 79, 84, 88, 91].forEach((m, i) => xylo(m, t + 0.02 + i * 0.045, 0.07 * vol));
+      noise(t, 0.9, 0.08 * vol, { type: 'highpass', f: 5000, a: 0.01 });
+      osc('sine', 46, t, 0.9, 0.5 * vol, sfxBus, { f1: 28 });
+    }
     osc('sine', 70 - k * 8, t, 0.35 + k * 0.15, 0.55 * vol, sfxBus, { f1: 32 });
     noise(t, 0.18, 0.35 * vol, { type: 'lowpass', f: 600, f1: 120, q: 0.7 });
     // Creak.
@@ -118,11 +172,116 @@ export const sfx = {
     // Whoosh of the ring.
     noise(t + 0.02, 0.5 + 0.2 * k, 0.12 * vol, { type: 'bandpass', f: 300, f1: 2200, q: 2.2, a: 0.08 });
   },
-  launch() {
+  launch(vol = 1) {
     if (!on()) return;
     const t = now();
-    noise(t, 0.08, 0.3, { type: 'highpass', f: 900, q: 0.8 });
-    osc('sine', 420, t + 0.03, 0.45, 0.16, sfxBus, { f1: 1300, a: 0.02 });
+    play(CLOTH, 0.7 * vol, 0.8);
+    noise(t, 0.08, 0.3 * vol, { type: 'highpass', f: 900, q: 0.8 });
+    osc('sine', 420, t + 0.03, 0.45, 0.16 * vol, sfxBus, { f1: 1300, a: 0.02 });
+  },
+  /** A pump: a perfect one rings a note up the ladder with the streak; a good one a soft tick. */
+  pump(streak = 0, tier = 0, good = false) {
+    if (!on()) return;
+    const t = now();
+    if (good) {
+      osc('triangle', 520, t, 0.05, 0.05, sfxBus, { f1: 640 });
+      return;
+    }
+    const m = LADDER[Math.min(LADDER.length - 1, Math.max(0, streak - 1))];
+    xylo(m + 12, t, 0.09);
+    osc('sine', midi(m + 24), t + 0.01, 0.25, 0.025);
+    if (tier >= 3) play('glass_001', 0.25, 1 + Math.min(0.5, streak * 0.04));
+    if (streak > 0 && streak % 5 === 0) [0, 4, 7, 12].forEach((d, i) => xylo(m + 12 + d, t + 0.06 + i * 0.05, 0.06));
+  },
+  /** This page's monkey launched someone. */
+  hit() {
+    if (!on()) return;
+    const t = now();
+    play(MEDIUM, 0.6, 0.7);
+    xylo(84, t + 0.02, 0.07);
+    xylo(91, t + 0.07, 0.05);
+  },
+  /** A toy grabbed. */
+  grab(kind = 'mega', vol = 1) {
+    if (!on()) return;
+    const t = now();
+    play('drop_002', 0.5 * vol, kind === 'spring' ? 1.3 : 1);
+    if (kind === 'mega') [76, 79, 83, 88].forEach((m, i) => xylo(m, t + i * 0.06, 0.08 * vol));
+    else if (kind === 'shield') {
+      noise(t, 0.3, 0.2 * vol, { type: 'lowpass', f: 900, f1: 300 });
+      [67, 72].forEach((m, i) => piano(m + 12, t + i * 0.08, 0.3, 0.06 * vol, sfxBus));
+    } else {
+      const o = osc('sine', 220, t, 0.45, 0.14 * vol, sfxBus, { f1: 880 });
+      const lfo = ctx.createOscillator();
+      const lg = ctx.createGain();
+      lfo.frequency.value = 26;
+      lg.gain.value = 40;
+      lfo.connect(lg).connect(o.frequency);
+      lfo.start(t);
+      lfo.stop(t + 0.5);
+    }
+  },
+  /** A perfect pump shook a dizzy star off. */
+  shake() {
+    if (!on()) return;
+    const t = now();
+    [88, 84, 79].forEach((m, i) => xylo(m, t + i * 0.05, 0.05));
+  },
+  /** A monkey climbs onto the bed (the Rush). */
+  climb() {
+    if (!on()) return;
+    play(CLOTH, 0.35, 1.2);
+    play(MEDIUM, 0.25, 1.3, 0.12);
+  },
+  /** Points in the Rush: a ding, higher with the combo. */
+  score(combo = 1) {
+    if (!on()) return;
+    const t = now();
+    const m = 72 + Math.min(12, (combo - 1) * 3);
+    xylo(m, t, 0.1);
+    xylo(m + 7, t + 0.06, 0.08);
+    if (combo >= 3) xylo(m + 12, t + 0.12, 0.07);
+  },
+  /** The sting for a bedtime twist. */
+  twist(tw) {
+    if (!on()) return;
+    const t = now() + 0.05;
+    if (tw === 'rain') {
+      noise(t, 0.6, 0.15, { type: 'bandpass', f: 2000, f1: 400, q: 2, a: 0.05 });
+      [79, 76, 72, 67].forEach((m, i) => piano(m, t + i * 0.09, 0.3, 0.08, sfxBus));
+    } else if (tw === 'dark') {
+      play('metalClick', 0.5);
+      [55, 51, 48].forEach((m, i) => piano(m, t + 0.1 + i * 0.16, 0.8, 0.09, sfxBus));
+    } else if (tw === 'bonanza') {
+      [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => xylo(m, t + i * 0.07, 0.08));
+    } else if (tw === 'bouncy') {
+      for (let i = 0; i < 4; i++) osc('sine', 200 + i * 90, t + i * 0.1, 0.18, 0.1, sfxBus, { f1: 420 + i * 160 });
+    } else if (tw === 'echo') {
+      [0, 0.18, 0.36, 0.54].forEach((d, i) => xylo(84, t + d, 0.09 * Math.pow(0.6, i)));
+    }
+  },
+  levelUp() {
+    if (!on()) return;
+    play('jingles_PIZZI03', 0.7);
+    play('maximize_006', 0.35);
+  },
+  goal() {
+    if (!on()) return;
+    play('confirmation_002', 0.5);
+  },
+  box() {
+    if (!on()) return;
+    play('jingles_PIZZI07', 0.7);
+    play('glass_004', 0.3, 1, 0.2);
+  },
+  win() {
+    if (!on()) return;
+    play('jingles_PIZZI01', 0.6);
+  },
+  /** One tick of an XP line counting up. */
+  tick(i = 0) {
+    if (!on()) return;
+    xylo(79 + (i % 5) * 2, now(), 0.035);
   },
   teeter() {
     if (!on()) return;
@@ -153,11 +312,13 @@ export const sfx = {
   },
   pillowThrow() {
     if (!on()) return;
+    play(CLOTH, 0.45, 1.1);
     noise(now(), 0.35, 0.12, { type: 'bandpass', f: 500, f1: 1500, q: 1.5, a: 0.05 });
   },
   pillowLand() {
     if (!on()) return;
     const t = now();
+    play(MEDIUM, 0.4, 0.75);
     noise(t, 0.2, 0.3, { type: 'lowpass', f: 700, f1: 200 });
     osc('sine', 110, t, 0.2, 0.25, sfxBus, { f1: 60 });
   },
@@ -203,8 +364,9 @@ export const sfx = {
   door() {
     if (!on()) return;
     const t = now();
-    // Footsteps, then the bang.
-    for (let i = 0; i < 3; i++) noise(t + i * 0.18, 0.08, 0.2, { type: 'lowpass', f: 260 });
+    // Footsteps, then the door.
+    for (let i = 0; i < 3; i++) play(STEPS, 0.6, 0.8, i * 0.18);
+    play('doorOpen_1', 0.7, 1, 0.5);
     osc('sine', 80, t + 0.6, 0.45, 0.6, sfxBus, { f1: 40 });
     noise(t + 0.6, 0.3, 0.45, { type: 'lowpass', f: 900, f1: 200 });
     [48, 55, 60, 64].forEach((m) => piano(m + 12, t + 0.75, 1.6, 0.06, sfxBus));
@@ -219,8 +381,7 @@ export const sfx = {
   },
   tap() {
     if (!on()) return;
-    const t = now();
-    noise(t, 0.05, 0.12, { type: 'bandpass', f: 1800, q: 1.2 });
+    play(['pluck_001', 'pluck_002'], 0.5);
   },
   zip() {
     if (!on()) return;
@@ -269,7 +430,12 @@ const MEL = [
 const BASS = [48, 55, 53, 48, 48, 55, 43, 48, 53, 60, 50, 55, 53, 48, 43, 48];
 const CHORDS = [[60, 64, 67], [60, 65, 69], [60, 64, 67], [59, 62, 67], [60, 65, 69], [62, 65, 69], [60, 65, 69], [59, 62, 67]];
 
-let music = { mode: 'off', step: 0, next: 0, timer: 0, tempo: 116 };
+let music = { mode: 'off', step: 0, next: 0, timer: 0, tempo: 116, layers: 0 };
+
+/** How full the tune plays (0-3): more layers as monkeys fall. */
+export function setLayers(n) {
+  music.layers = Math.max(0, Math.min(3, n | 0));
+}
 
 export function setMusic(mode, tempo) {
   if (!ctx) {
@@ -316,20 +482,25 @@ function schedule() {
       }
       if (inBar === 0) osc('sine', midi(BASS[(bar * 2) % BASS.length] + 12), t, 1.2, 0.05, musicBus);
     } else {
+      const L = music.layers;
       if (m !== null) {
-        xylo(m + 12, t, 0.11, musicBus);
-        if (inBar % 4 === 0) piano(m, t, 0.25, 0.05, musicBus);
+        xylo(m + 12, t, L >= 1 ? 0.11 : 0.06, musicBus);
+        if (inBar % 4 === 0 && L >= 2) piano(m, t, 0.25, 0.05, musicBus);
+        // The top layer: an answer an octave up, off the beat.
+        if (L >= 3 && inBar % 2 === 1) xylo(m + 24, t, 0.04, musicBus);
       }
       if (inBar % 4 === 0) {
         const b = BASS[(bar * 2 + inBar / 4) % BASS.length];
         osc('triangle', midi(b - 12), t, 0.22, 0.2, musicBus, { a: 0.003 });
+        // A soft kick under the bass.
+        osc('sine', 110, t, 0.12, 0.16, musicBus, { f1: 45 });
       }
-      if (inBar === 2 || inBar === 6) noise(t, 0.12, 0.08, { type: 'highpass', f: 2500, bus: musicBus, a: 0.003 });
+      if (inBar === 2 || inBar === 6) noise(t, 0.12, L >= 2 ? 0.12 : 0.08, { type: L >= 2 ? 'bandpass' : 'highpass', f: L >= 2 ? 1800 : 2500, bus: musicBus, a: 0.003 });
       if (inBar % 2 === 1) {
         const ch = CHORDS[bar % CHORDS.length];
         for (const c of ch) osc('sine', midi(c), t, 0.1, 0.018, musicBus, { a: 0.002 });
       }
-      if (inBar % 2 === 0) noise(t, 0.03, 0.025, { type: 'highpass', f: 7000, bus: musicBus, a: 0.001 });
+      noise(t, 0.03, inBar % 2 === 0 ? 0.025 : L >= 2 ? 0.014 : 0, { type: 'highpass', f: 7000, bus: musicBus, a: 0.001 });
     }
     music.step++;
     music.next += eighth;

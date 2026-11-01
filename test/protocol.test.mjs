@@ -1,16 +1,16 @@
 // Everything another page sends is checked before it touches the bed; saves are read defensively.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkSlam, checkPillow, checkSample, checkPresence, rateGate, acceptMessage, slamMessage, pillowMessage } from '../game/src/protocol.js';
+import { checkSlam, checkPillow, checkSample, checkPresence, checkGrab, checkHit, checkLook, rateGate, acceptMessage, slamMessage, pillowMessage, grabMessage, hitMessage } from '../game/src/protocol.js';
 import { bedById } from '../game/src/sim/beds.js';
-import { normalizeSave, defaultSave, bankMatch, bedOpen, starCount } from '../game/src/save.js';
+import { normalizeSave, defaultSave, bankMatch, bedOpen, starCount, wornLook } from '../game/src/save.js';
 import { createReferee } from '../game/src/referee.js';
 
 const bed = bedById('kid');
 const s0 = bed.surfaces[0];
 const slam = (o = {}) => ({ t: 's', n: 7, x: s0.cx, z: s0.cz, si: 0, e: 1, at: 10.2, t0: 10, y0: 1.8, vx: 0.5, vz: -0.5, ...o });
 const pillow = (o = {}) => ({ t: 'p', n: 8, fx: s0.cx, fz: s0.z1 + 1.5, x: s0.cx, z: s0.cz, si: 0, at: 10.5, ...o });
-const sample = () => ['a', s0.cx, s0.cz, 1.2, 0.1, -0.2, 3, 0, 0, 0.12, 0, 0, s0.cx, s0.cz, 0];
+const sample = () => ['a', s0.cx, s0.cz, 1.2, 0.1, -0.2, 3, 0, 0, 0.12, 0, 0, s0.cx, s0.cz, 0, 2, 1, 0, 1];
 
 test('slam messages: good ones pass as clean copies, anything odd is dropped', () => {
   const ok = checkSlam(slam(), bed, 10);
@@ -26,6 +26,23 @@ test('slam messages: good ones pass as clean copies, anything odd is dropped', (
   ]) assert.equal(checkSlam(bad, bed, 10), null, JSON.stringify(bad));
   // A slam from the floor side (si -1) may land beside the bed.
   assert.ok(checkSlam(slam({ si: -1, x: s0.x1 + 1, e: 0.2, y0: bed.floor + 1 }), bed, 10));
+  // A golden banana's Mega Slam carries more energy, and says so.
+  assert.equal(checkSlam(slam({ e: 2 }), bed, 10), null);
+  assert.equal(checkSlam(slam({ e: 2, g: 1 }), bed, 10).g, 1);
+  assert.equal(checkSlam(slam({ g: 2 }), bed, 10), null);
+});
+
+test('grab and hit messages: a toy number or a seat id, a time near now', () => {
+  assert.deepEqual(checkGrab({ t: 'g', k: 3, at: 10.1 }, 10), { k: 3, at: 10.1, b: undefined });
+  for (const bad of [{ t: 'g', k: -1, at: 10 }, { t: 'g', k: 1.5, at: 10 }, { t: 'g', k: 2, at: 40 }, { t: 'g', k: 2 }, { t: 'h', k: 2, at: 10 }]) {
+    assert.equal(checkGrab(bad, 10), null, JSON.stringify(bad));
+  }
+  assert.equal(checkHit({ t: 'h', by: 'bot:1', at: 10 }, 10).by, 'bot:1');
+  for (const bad of [{ t: 'h', by: 'no spaces', at: 10 }, { t: 'h', by: 3, at: 10 }, { t: 'h', by: 'ann', at: -9 }]) {
+    assert.equal(checkHit(bad, 10), null, JSON.stringify(bad));
+  }
+  assert.ok(checkGrab(JSON.parse(JSON.stringify(grabMessage('bot:1', 4, 10.23456, true))), 10).b === 'bot:1');
+  assert.equal(checkHit(JSON.parse(JSON.stringify(hitMessage('ann', 'bo', 10.1, false))), 10).by, 'bo');
 });
 
 test('pillow messages and presence samples are checked field by field', () => {
@@ -35,26 +52,32 @@ test('pillow messages and presence samples are checked field by field', () => {
   }
   assert.ok(checkSample(sample(), bed));
   const broken = [
-    sample().slice(1), [...sample(), 1], ['z', ...sample().slice(1)],
+    sample().slice(1), [...sample(), 1], ['z', ...sample().slice(1)], sample().slice(0, 15),
     Object.assign(sample(), { 1: NaN }), Object.assign(sample(), { 3: 99 }), Object.assign(sample(), { 7: 3 }),
     Object.assign(sample(), { 10: 2 }), Object.assign(sample(), { 11: -1 }), Object.assign(sample(), { 14: 7 }),
+    Object.assign(sample(), { 15: 4 }), Object.assign(sample(), { 16: -1 }), Object.assign(sample(), { 17: 2 }), Object.assign(sample(), { 18: 'y' }),
   ];
   for (const bad of broken) assert.equal(checkSample(bad, bed), null, JSON.stringify(bad));
 });
 
-test('presence: a clean copy, bad samples dropped, at most five bots', () => {
-  const p = { v: 1, s: 'in', r: 'r1', t: 12.5, p: 2, m: sample(), b: [['bot:1', ...sample()], ['bad id!', ...sample()], ['bot:2', 'junk']] };
-  const c = checkPresence(p, bed, 6);
+test('presence: a clean copy, bad samples dropped, at most five bots, a look of known items', () => {
+  const p = { v: 2, s: 'in', r: 'r1', t: 12.5, l: [2, 1, 0, 3, 1], lv: 7, m: sample(), b: [['bot:1', ...sample()], ['bad id!', ...sample()], ['bot:2', 'junk']] };
+  const c = checkPresence(p, bed);
   assert.equal(c.s, 'in');
   assert.equal(c.b.length, 1);
   assert.equal(c.b[0][0], 'bot:1');
-  assert.equal(checkPresence({ ...p, p: 99 }, bed, 6).p, 0, 'unknown pattern: plain');
-  assert.equal(checkPresence({ ...p, m: ['x'] }, bed, 6).m, null);
-  for (const bad of [null, {}, { ...p, v: 2 }, { ...p, s: 'dancing' }, { ...p, r: 5 }, { ...p, t: NaN }, { ...p, r: 'x'.repeat(200) }]) {
-    assert.equal(checkPresence(bad, bed, 6), null);
+  assert.deepEqual(c.l, [2, 1, 0, 3, 1]);
+  assert.equal(c.lv, 7);
+  assert.deepEqual(checkPresence({ ...p, l: [99, -1, 'x', 0, 1.5] }, bed).l, [0, 0, 0, 0, 0], 'unknown items: the first of each slot');
+  assert.equal(checkPresence({ ...p, l: [1, 2] }, bed).l, null);
+  assert.equal(checkPresence({ ...p, lv: 999 }, bed).lv, 1);
+  assert.equal(checkPresence({ ...p, m: ['x'] }, bed).m, null);
+  for (const bad of [null, {}, { ...p, v: 1 }, { ...p, s: 'dancing' }, { ...p, r: 5 }, { ...p, t: NaN }, { ...p, r: 'x'.repeat(200) }]) {
+    assert.equal(checkPresence(bad, bed), null);
   }
   const many = { ...p, b: Array.from({ length: 9 }, (_, i) => [`bot:${i}`, ...sample()]) };
-  assert.equal(checkPresence(many, bed, 6).b.length, 5);
+  assert.equal(checkPresence(many, bed).b.length, 5);
+  assert.equal(checkLook('x'), null);
 });
 
 test('rate gates: one per gap per sender, and a new round (time going back) resets', () => {
@@ -79,7 +102,7 @@ test('the messages this page sends pass the checks another page makes', () => {
 
 test('who may say what: bots speak only through the host, latecomers only in the lobby, pillows only in a round', () => {
   const seats = [{ id: 'ann', bot: false }, { id: 'bo', bot: false }, { id: 'bot:1', bot: true }];
-  const room = (o = {}) => ({ host: 'ann', seats, inRound: true, bed, now: 10, slamGate: rateGate(0.9), pillowGate: rateGate(3.3), ...o });
+  const room = (o = {}) => ({ host: 'ann', seats, inRound: true, bed, now: 10, slamGate: rateGate(0.9), pillowGate: rateGate(3.3), otherGate: rateGate(0.3), ...o });
   assert.deepEqual(acceptMessage(slam(), 'bo', room()).owner, 'bo');
   assert.equal(acceptMessage(slam({ b: 'bot:1' }), 'ann', room()).owner, 'bot:1', 'the host speaks for its bot');
   assert.equal(acceptMessage(slam({ b: 'bot:1' }), 'bo', room()), null, 'a guest cannot speak for a bot');
@@ -94,6 +117,12 @@ test('who may say what: bots speak only through the host, latecomers only in the
   const r = room();
   assert.ok(acceptMessage(slam(), 'bo', r));
   assert.equal(acceptMessage(slam({ n: 9, at: 10.4, t0: 10.2 }), 'bo', r), null, 'one slam per 0.9 s');
+  assert.equal(acceptMessage({ t: 'g', k: 1, at: 10 }, 'bo', room()).kind, 'g');
+  assert.equal(acceptMessage({ t: 'g', k: 1, at: 10 }, 'bo', room({ inRound: false })), null, 'no toys in the lobby');
+  assert.equal(acceptMessage({ t: 'h', by: 'ann', at: 10 }, 'bo', room()).m.by, 'ann');
+  assert.equal(acceptMessage({ t: 'h', by: 'bo', at: 10 }, 'bo', room()), null, 'no hitting yourself');
+  assert.equal(acceptMessage({ t: 'h', by: 'zed', at: 10 }, 'bo', room()), null, 'only a seat earns a hit');
+  assert.equal(acceptMessage({ t: 'h', by: 'bo', at: 10, b: 'bot:1' }, 'ann', room()).owner, 'bot:1');
 });
 
 test('the referee: credit only for a seat that acted in the last 4 s, one fall each, only in a round', () => {
@@ -147,4 +176,13 @@ test('saves: anything odd in a stored save falls back to the default, and a matc
   assert.equal(s.wins, 2);
   assert.equal(s.knockoffs, 4);
   assert.deepEqual(normalizeSave(JSON.parse(JSON.stringify(s))), s, 'round trip');
+  // A version 1 save keeps its pyjamas; anything unknown in a look falls back.
+  assert.equal(normalizeSave({ v: 1, pattern: 'dots' }).look.pj, 'dots');
+  const odd = normalizeSave({ look: { pj: 'galaxy', hat: '<img>', thread: 7, trail: 'stars', dance: 'worm' } });
+  assert.deepEqual(odd.look, { pj: 'galaxy', hat: 'none', thread: 'seat', trail: 'stars', dance: 'worm' });
+  // Worn: only what's owned (a fresh save owns no Galaxy pyjamas and no Worm yet).
+  assert.deepEqual(wornLook(odd), { pj: 'plain', hat: 'none', thread: 'seat', trail: 'none', dance: 'cheer' });
+  odd.progress.xp = 1e6;
+  odd.progress.boxed.push('pj:galaxy');
+  assert.deepEqual(wornLook(odd), { pj: 'galaxy', hat: 'none', thread: 'seat', trail: 'stars', dance: 'worm' });
 });
