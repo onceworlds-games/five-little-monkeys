@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "bake": "node tools/bake.mjs"
   },
   "dependencies": {
     "@fontsource/alfa-slab-one": "^5.3.0",
