@@ -383,6 +383,12 @@ export const sfx = {
     if (!on()) return;
     play(['pluck_001', 'pluck_002'], 0.5);
   },
+  /** Something put on in the wardrobe: a rustle of cloth and a soft chime. */
+  wear() {
+    if (!on()) return;
+    play(CLOTH, 0.55, 1.1);
+    play('confirmation_001', 0.4, 1, 0.08);
+  },
   zip() {
     if (!on()) return;
     noise(now(), 0.25, 0.08, { type: 'bandpass', f: 1500, f1: 4000, q: 4 });

@@ -9,6 +9,8 @@ import { createMonkey, FURS } from './render/monkey.js';
 import { loadBodies } from './render/bodies.js';
 import { createFx } from './render/fx.js';
 import { createToys } from './render/toys.js';
+import { lowify } from './render/lowmat.js';
+import { crownTexture } from './render/sprites.js';
 import { fieldAt, ampAt } from './sim/waves.js';
 import { surfaceUnder, inside } from './sim/beds.js';
 import { CONTACT, SLAM, PILLOW, PUMP } from './sim/config.js';
@@ -44,6 +46,9 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   const toys = createToys(scene);
   let room = null;
   let bedId = '';
+  // A new room's shaders compile in the background (where the browser can) before it is drawn, so the page never stalls.
+  let needWarm = false;
+  let warming = 0;
   let q = quality;
   const monkeys = new Map();
   let base = 0;
@@ -65,11 +70,20 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     }
     room = buildRoom(bed, u, q);
     scene.add(room.group);
+    lowify(toys.group, q === 'low');
+    needWarm = !poster;
     stage.setQuality(q, bed.box);
     stage.moon.target.position.set(0, 0, (bed.box.z0 + bed.box.z1) / 2);
     fx.clear();
     toys.clear();
   }
+
+  // The points leader's crown, floating over their head so everyone knows whom to hunt.
+  const crown = new THREE.Sprite(new THREE.SpriteMaterial({ map: crownTexture(), transparent: true, depthWrite: false, fog: false }));
+  crown.scale.set(0.62, 0.46, 1);
+  crown.renderOrder = 7;
+  crown.visible = false;
+  scene.add(crown);
 
   // Lights Out: the room's own lights dim in room.update; the moon, the fill and the sky dim here.
   const base0 = { moon: stage.moon.intensity, hemi: stage.hemi.intensity, fill: stage.fill.intensity, env: scene.environmentIntensity };
@@ -87,7 +101,10 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     if (next === q) return;
     q = next;
     stage.renderer.shadowMap.enabled = next !== 'low';
-    for (const m of monkeys.values()) m.mk.mesh.castShadow = next !== 'low';
+    for (const m of monkeys.values()) {
+      m.mk.mesh.castShadow = next !== 'low';
+      lowify(m.mk.group, next === 'low');
+    }
     if (bed) {
       bedId = '';
       setBed(bed);
@@ -110,12 +127,14 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     if (!m) {
       const mk = createMonkey({ data: bodies[kind].mesh, anchors: bodies[kind].anchors, body: kind, look: pl, quality: q, shadows: q !== 'low' });
       scene.add(mk.group);
+      if (q === 'low') lowify(mk.group);
       m = { mk, key, yaw: 0, lookKey: lk, throwAt: -9, pillowAt: 0, outX: 0, outZ: 0, flip: false };
       monkeys.set(id, m);
     }
     if (lk !== m.lookKey) {
       m.lookKey = lk;
       m.mk.setLook({ pattern: pl.pattern, hat: pl.hat, fur: pl.fur });
+      if (q === 'low') lowify(m.mk.group);
     }
     return m;
   }
@@ -170,6 +189,7 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     const tw = world.t;
     const dt = opts.dt ?? 1 / 60;
     fx.dizzyStart();
+    crown.visible = false;
     for (const e of world.entries.values()) {
       const look = opts.looks.get(e.id);
       if (!look) continue;
@@ -277,6 +297,12 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
       s.lookAt = lookTarget(world, b, camV);
       m.mk.update(s, dt);
       if (b.dizzy > 0 && !b.out) fx.dizzy(m.mk.headWorld(tmpV), b.dizzy, opts.anim);
+      if (opts.cap && opts.cap === e.id && !out) {
+        m.mk.headWorld(tmpV);
+        crown.visible = true;
+        crown.position.set(tmpV.x, tmpV.y + 0.95 + Math.sin(opts.anim * 3) * 0.06, tmpV.z);
+        crown.material.rotation = Math.sin(opts.anim * 2.2) * 0.12;
+      }
     }
     for (const x of opts.extras ?? []) {
       keep.add(x.id);
@@ -367,6 +393,17 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     camera.lookAt(tmpV.copy(camTarget).addScaledVector(sh, 0.5));
     const h = stage.renderer.domElement.height;
     fx.update(dt, t, h / (2 * Math.tan(THREE.MathUtils.degToRad(camFov / 2))), camera);
+    if (needWarm) {
+      needWarm = false;
+      const r = stage.renderer;
+      if (r.compileAsync) {
+        warming++;
+        Promise.race([r.compileAsync(scene, camera), new Promise((ok) => setTimeout(ok, 8000))])
+          .catch(() => {})
+          .finally(() => warming--);
+      }
+    }
+    if (warming > 0) return;
     stage.draw(dt);
   }
 
@@ -376,39 +413,47 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     return { x: (tmpV.x * 0.5 + 0.5) * w, y: (-tmpV.y * 0.5 + 0.5) * h, behind: tmpV.z > 1 };
   }
 
-  // Portraits: a head-and-shoulders picture of a look, from the real plush, on a small renderer of its own (so it is
-  // tone-mapped like the game), one per frame, cached by look.
+  // Portraits: a head-and-shoulders picture of a look, from the real plush, drawn by the game's own renderer into a float
+  // target (twice the size, for smooth edges) and tone-mapped here like the screen. One per frame, cached by look.
   const shots = new Map();
   const queue = [];
+  const PS = 160;
   let pr = null;
   function portraitKey(look) {
     const kind = bodyOf(look);
     const pl = plushLook(look, kind);
     return `${kind}|${pl.extra}|${look.hex}|${pl.symbol}|${pl.pattern}|${pl.hat}|${pl.fur}`;
   }
-  /** A data URL of `look`'s portrait, or null while it's being drawn. */
+  let portraitsOn = true;
+  /** A data URL of `look`'s portrait, or null while it's being drawn ('' with portraits off). */
   function portrait(look) {
     if (!look) return null;
+    if (!portraitsOn) return '';
     const key = portraitKey(look);
     const got = shots.get(key);
-    if (got) return got;
+    if (got !== undefined) return got;
     if (!queue.some((x) => x.key === key)) queue.push({ key, look });
     return null;
   }
+  // three's ACES filmic curve (the screen's tone mapping), then sRGB.
+  const EXPOSURE = 1.1 / 0.6;
+  const fit = (v) => (v * (v + 0.0245786) - 0.000090537) / (v * (0.983729 * v + 0.432951) + 0.238081);
+  const srgb = (c) => {
+    const x = c <= 0 ? 0 : c >= 1 ? 1 : c;
+    return Math.round((x <= 0.0031308 ? x * 12.92 : 1.055 * Math.pow(x, 1 / 2.4) - 0.055) * 255);
+  };
   function shootOne() {
     if (!bodies || !queue.length) return;
     const { key, look } = queue.shift();
+    const renderer = stage.renderer;
+    const prevTarget = renderer.getRenderTarget();
+    const prevClear = renderer.getClearColor(new THREE.Color());
+    const prevAlpha = renderer.getClearAlpha();
+    let mk = null;
     try {
       if (!pr) {
-        const c = document.createElement('canvas');
-        c.width = c.height = 160;
-        const r = new THREE.WebGLRenderer({ canvas: c, alpha: true, antialias: true, preserveDrawingBuffer: true });
-        r.outputColorSpace = THREE.SRGBColorSpace;
-        r.toneMapping = THREE.ACESFilmicToneMapping;
-        r.toneMappingExposure = 1.1;
-        r.setPixelRatio(1);
-        r.setSize(160, 160, false);
-        r.setClearColor(0x000000, 0);
+        const N = PS * 2;
+        const target = new THREE.WebGLRenderTarget(N, N, { type: THREE.FloatType, depthBuffer: true });
         const sc = new THREE.Scene();
         sc.environment = scene.environment;
         sc.environmentIntensity = 0.35;
@@ -418,28 +463,81 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
         rim.position.set(-3, 2.5, -3);
         sc.add(key1, rim, new THREE.HemisphereLight('#8090C0', '#402838', 1.1));
         const cam = new THREE.PerspectiveCamera(26, 1, 0.05, 20);
-        pr = { r, sc, cam, c };
+        const c = document.createElement('canvas');
+        c.width = c.height = PS;
+        pr = { target, sc, cam, c, g: c.getContext('2d'), px: new Float32Array(N * N * 4), img: new ImageData(PS, PS) };
       }
       const kind = bodyOf(look);
-      const mk = createMonkey({ data: bodies[kind].mesh, anchors: bodies[kind].anchors, body: kind, look: plushLook(look, kind), quality: 'high', shadows: false });
+      mk = createMonkey({ data: bodies[kind].mesh, anchors: bodies[kind].anchors, body: kind, look: plushLook(look, kind), quality: 'high', shadows: false });
       pr.sc.add(mk.group);
       const eye = new THREE.Vector3(0.6, 1.1, 3);
       for (let i = 0; i < 12; i++) mk.update({ x: 0, y: 0, z: 0, yaw: 0, scale: 1, mode: 'stand', mouth: 'grin', lookAt: eye }, 1 / 30);
       const head = mk.headWorld(new THREE.Vector3());
       pr.cam.position.set(head.x + 0.42, head.y + 0.28, head.z + 2.3);
       pr.cam.lookAt(head.x, head.y - 0.08, head.z);
-      pr.r.render(pr.sc, pr.cam);
+      renderer.setRenderTarget(pr.target);
+      renderer.setClearColor(0x000000, 0);
+      renderer.clear(true, true, true);
+      renderer.render(pr.sc, pr.cam);
+      const N = PS * 2;
+      renderer.readRenderTargetPixels(pr.target, 0, 0, N, N, pr.px);
+      // Down by two (four samples a pixel), un-premultiply against the clear black, tone-map, flip (GL rows run upwards).
+      const src = pr.px;
+      const out = pr.img.data;
+      for (let y = 0; y < PS; y++) {
+        for (let x = 0; x < PS; x++) {
+          let r = 0, g = 0, b = 0, a = 0;
+          for (let dy = 0; dy < 2; dy++) {
+            for (let dx = 0; dx < 2; dx++) {
+              const i = ((y * 2 + dy) * N + x * 2 + dx) * 4;
+              const al = Math.min(1, Math.max(0, src[i + 3]));
+              r += src[i] * al;
+              g += src[i + 1] * al;
+              b += src[i + 2] * al;
+              a += al;
+            }
+          }
+          const o = ((PS - 1 - y) * PS + x) * 4;
+          if (a <= 0.0001) {
+            out[o] = out[o + 1] = out[o + 2] = out[o + 3] = 0;
+            continue;
+          }
+          r = (r / a) * EXPOSURE;
+          g = (g / a) * EXPOSURE;
+          b = (b / a) * EXPOSURE;
+          const ir = fit(0.59719 * r + 0.35458 * g + 0.04823 * b);
+          const ig = fit(0.076 * r + 0.90834 * g + 0.01566 * b);
+          const ib = fit(0.0284 * r + 0.13383 * g + 0.83777 * b);
+          out[o] = srgb(1.60475 * ir - 0.53108 * ig - 0.07367 * ib);
+          out[o + 1] = srgb(-0.10208 * ir + 1.10813 * ig - 0.00605 * ib);
+          out[o + 2] = srgb(-0.00327 * ir - 0.07276 * ig + 1.07602 * ib);
+          out[o + 3] = Math.round((a / 4) * 255);
+        }
+      }
+      pr.g.putImageData(pr.img, 0, 0);
       shots.set(key, pr.c.toDataURL('image/png'));
-      mk.dispose();
     } catch (err) {
       console.warn('portrait', err);
       shots.set(key, '');
+    } finally {
+      // The last plush stays (off the stage) until the next is drawn, so its shaders stay compiled for it.
+      if (mk) {
+        pr?.sc.remove(mk.group);
+        pr?.last?.dispose();
+        if (pr) pr.last = mk;
+      }
+      renderer.setRenderTarget(prevTarget);
+      renderer.setClearColor(prevClear, prevAlpha);
     }
   }
 
   return {
     stage, fx, u, setBed, setQuality, draw, frame, render, toScreen, rugSpot, ready, setDark, portrait,
     shootPortraits: shootOne,
+    /** Portraits cost shaders of their own: off on computers drawing in software. */
+    setPortraits(on) {
+      portraitsOn = on;
+    },
     get room() {
       return room;
     },

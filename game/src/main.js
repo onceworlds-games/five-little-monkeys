@@ -36,8 +36,23 @@ const SHORT = { kid: 'KID', bunk: 'BUNK', water: 'WATER', king: 'KING', poster: 
 const BISCUIT = { hex: '#9A6A3E', dark: '#5A3A1E', symbol: '', pattern: 'plain', extra: 'bear', hat: 'none' };
 const TOY_NAMES = { mega: 'GOLDEN BANANA', shield: 'PILLOW', spring: 'SPRING' };
 
+// A computer drawing WebGL in software (no GPU) gets the low look whatever is asked: shaders compile and shade on the CPU.
+// ?quality=low|medium|high (local only) picks one, for pictures. Read from the game's own context once it exists.
+let SOFTWARE = false;
+function softwareGL(renderer) {
+  try {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    return /swiftshader|llvmpipe|softpipe|software/i.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+  } catch {
+    return false;
+  }
+}
+const FORCED = LOCAL && ['low', 'medium', 'high'].includes(params.get('quality')) ? params.get('quality') : null;
 const settings = {
   get quality() {
+    if (FORCED) return FORCED;
+    if (SOFTWARE) return 'low';
     try {
       return ow?.settings?.quality ?? 'high';
     } catch {
@@ -93,6 +108,11 @@ async function boot() {
 
   const canvasEl = document.getElementById('c');
   const view = createView(canvasEl, { quality: settings.quality, pixelRatio: settings.pr() });
+  SOFTWARE = !FORCED && softwareGL(view.stage.renderer);
+  if (SOFTWARE) {
+    view.setQuality('low');
+    view.setPortraits(false);
+  }
   const input = createInput(ow);
   const uiRoot = document.getElementById('ui');
 
@@ -622,7 +642,7 @@ async function boot() {
       sfx.bonk(0.3);
       return;
     }
-    sfx.tap();
+    sfx.wear();
     save.look[slot] = id;
     myLook = wornLook(save);
     writeSave(ow, save);
@@ -715,6 +735,7 @@ async function boot() {
         ui.pop(`+${ev.pts}`, at.x, at.y, ev.combo > 1 ? '#FFC23A' : '#FFF1D6', ev.combo > 1 ? `×${ev.combo}` : '');
         sfx.score(ev.combo);
         if (ev.double) ui.banner('DOUBLE!', null, 1.4, 'gold');
+        else if (ev.combo >= 3) ui.banner(`COMBO ×${ev.combo}`, null, 1.2, 'gold');
       } else if (ev.type === 'hurt') {
         if (ev.left > 0) ui.banner(ev.left === 1 ? 'LAST BANDAGE!' : `${ev.left} BANDAGES LEFT`, null, 1.6);
         view.stage.flash(0.25, '#FF6A5A');
@@ -1323,7 +1344,7 @@ async function boot() {
     G.bandDrawn = null;
   }));
   function reserved() {
-    const r = safe(() => ow?.ui?.reserved) ?? null;
+    const r = safe(() => (ow && ow.ui ? ow.ui.reserved : null)) ?? null;
     let menuBottom = 70;
     let lobbyTop = innerHeight - 88;
     let menuRight = 150;
@@ -1638,7 +1659,10 @@ async function boot() {
       view.stage.resize(w, h, pr);
     }
     view.render(dt, anim, settings.reduced);
-    if (DEBUG) document.body.dataset.calls = String(view.stage.renderer.info.render.calls);
+    if (DEBUG) {
+      document.body.dataset.calls = String(view.stage.renderer.info.render.calls);
+      window.__view = view;
+    }
     // DOM over the world: name tags, the hint, the invite patch, results.
     const tags = [];
     if (G.mode === 'lobby' && G.screen === 'game') {

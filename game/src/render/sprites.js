@@ -121,3 +121,56 @@ export function lintTexture() {
   }
   return tex(c);
 }
+
+/** A felt crown with three points and gold studs, in colour (not tinted): the points leader wears it over their head. */
+export function crownTexture() {
+  const c = canvas(128, 96);
+  const g = c.getContext('2d');
+  const path = () => {
+    g.beginPath();
+    g.moveTo(14, 80);
+    g.lineTo(8, 22);
+    g.lineTo(38, 50);
+    g.lineTo(64, 10);
+    g.lineTo(90, 50);
+    g.lineTo(120, 22);
+    g.lineTo(114, 80);
+    g.closePath();
+  };
+  g.lineJoin = 'round';
+  // Shadow, body, a darker band, the stitch.
+  g.translate(0, 5);
+  path();
+  g.fillStyle = 'rgba(43,27,51,0.6)';
+  g.fill();
+  g.translate(0, -5);
+  path();
+  const lg = g.createLinearGradient(0, 10, 0, 80);
+  lg.addColorStop(0, '#FFE58A');
+  lg.addColorStop(1, '#F2A93B');
+  g.fillStyle = lg;
+  g.fill();
+  g.lineWidth = 5;
+  g.strokeStyle = '#2B1B33';
+  g.stroke();
+  g.fillStyle = '#D9473B';
+  g.fillRect(16, 62, 96, 14);
+  g.setLineDash([5, 5]);
+  g.lineWidth = 2;
+  g.strokeStyle = '#FFF1D6';
+  g.beginPath();
+  g.moveTo(18, 58);
+  g.lineTo(110, 58);
+  g.stroke();
+  g.setLineDash([]);
+  for (const [x, y] of [[8, 22], [64, 10], [120, 22]]) {
+    g.beginPath();
+    g.arc(x, y, 7, 0, Math.PI * 2);
+    g.fillStyle = '#FFF1D6';
+    g.fill();
+    g.lineWidth = 3;
+    g.strokeStyle = '#2B1B33';
+    g.stroke();
+  }
+  return tex(c);
+}

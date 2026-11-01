@@ -33,6 +33,23 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
   spot they aim on the quilt: it lands with a small ring. A pillow that knocks a monkey off scores like a slam.
 - **The round can't stall.** At 40 s the springs go wild: the alarm clock rings, the lamp flickers, the music speeds up,
   everyone bounces higher and rings hit harder. At 70 s it gets wilder still.
+- **Pump the bounce.** The same button, pressed as your feet touch the quilt (within 0.11 s either side), pumps instead
+  of slamming. A perfect press (within 0.05 s) climbs a tier: the bounce goes ×1.3, ×1.6, ×1.9 higher, with a rising
+  note on a pentatonic ladder and a ring of sparkles; a good one holds the tier; none, or a press too early, drops one.
+  Height is everything: a slam from the top tier makes the biggest ring, and a high monkey is above most crests. A ring
+  that launches someone gives its slammer a free tier.
+- **Dizzy stars.** Each time you're launched a star starts circling your head (up to three); each one makes the next
+  launch push you 18% further. One wears off every 6 s, and a perfect pump shakes one off. Knocking off a three-star
+  monkey is a goal of its own.
+- **Toys drop onto the bed** (first at 7 s, then every 9-13 s, at most two at once): a shadow grows on the quilt, the toy
+  falls in, lands with a squash and bobs, glowing, for 11 s. Bounce into it to grab it. The **golden banana** makes your
+  next slam a Mega Slam (+0.4 energy, a gold ring that reaches 18% further and pushes 10% harder) for 14 s; the
+  **pillow** is a shield that takes one launch for you (16 s); the **spring** puts you straight on the top tier. The toy
+  you hold shows on your plush in the strip and floats over your head.
+- **Bedtime twists.** From the second round of a match on, every round has a twist, the same on every page (from the
+  match id): **Pillow Rain** (pillows fall from the ceiling every 2.4-3.8 s, each one a small ring), **Lights Out** (the
+  room goes dark but the rings and the monkeys' rings of light glow), **Banana Bonanza** (toys every 3-5 s, three at
+  once), **Bouncy Springs** (everyone a tier up all round), **Echo Rings** (every ring rolls back once off the frame).
 - **Last monkey jumping wins the round:** "NO MORE MONKEYS JUMPING ON THE BED!" The door bursts open, Mama's silhouette
   stands in the doorway light, and the winner freezes mid-bounce, caught.
 
@@ -85,7 +102,7 @@ Every second: watch the rings, keep your monkey where a push won't carry it off,
 - **Crosses waves.** Slams just after someone else so the two crests meet under a target (interference).
 - **Baits.** Hovers near an aggressive monkey so it slams first (and bounces low, with no save), then punishes.
 - **Uses the pillows** when out: drops a small ring under the leader, or decides the final duel.
-- **Targets the leader**, who wears the nightcap (see Progression).
+- **Targets the leader**, who wears the crown (see Progression).
 
 ## Solo
 
@@ -189,16 +206,37 @@ Each page is the authority on its own monkey; the host is the authority on bots,
 
 ## Progression and reasons to come back
 
+Every match and every Rush pays out on one screen: XP lines counting into the level bar, level-ups, tonight's goals
+ticking, the streak, then what was unlocked and the Bedtime Box.
+
+- **Level** (1-50). XP for playing (20), each knock-off (30; +15 with a golden banana, +20 with a pillow, +10 off a dizzy
+  monkey), a round win (60), a match win (100), perfect bounces (1 each, up to 40), a streak of five (10), saves (20), toys
+  (6), close calls (5), the Rush (12% of the score) and each goal done (150). Level n needs 100 + 50n XP: level 10 in
+  about 6 matches, 20 in about 25, 50 is a long road. Your level shows on your plush in the strip and on the title card.
+- **The wardrobe** (5 slots, 59 items, all cosmetic, all seen by everyone): **pyjamas** (16 prints: 6 for stars on the
+  ladder, 7 by level, 2 from the box), **hats** (13: nightcap, sleep mask, bobble beanie, paper crown, propeller cap,
+  bunny ears, party hat, dino hood, headphones, pirate bandana; the golden nightcap and moon halo from the box), the
+  **ring thread** your slam rings glow in (9 colours, rainbow, candy cane, neon, ember, galaxy; moonbeam from the box),
+  the **launch trail** behind a monkey you launch (8: feathers, stars, bubbles, confetti, zzz, hearts, lightning;
+  fireflies from the box) and the **win dance** (8: cheer, cartwheel, chest thump, belly flop, the worm, pillow hug, top
+  spin, moon float; lullaby from the box). Something new nearly every level up to 40.
+- **Tonight's goals:** three goals a night, the same for everyone (from the UTC day): one anyone can make progress on
+  in a first match (knock-offs, perfect bounces, toys, matches, round wins), and two from the rest (chain perfect
+  bounces, golden-banana knock-offs, saves, a pillow knock-off, a three-star knock-off, top-tier slams, a Rush score).
+- **The streak:** nights in a row with at least one goal done. Shown with a moon on the title.
+- **The Bedtime Box:** all three goals done opens it: an item from the box pool you don't have yet (glow-in-the-dark and
+  galaxy pyjamas, the golden nightcap, the moon halo, moonbeam thread, fireflies, the lullaby), then 300 XP once you
+  have them all.
+- **Tonight's Rush** (from the title): you alone against an endless line of monkeys climbing onto tonight's bed, with
+  tonight's twist (the same for everyone). Three bandages: falling off costs one. A knock-off scores 100 (+50 with the
+  banana, +40 off a dizzy monkey, +150 for two at once), quick ones in a row multiply (×2 to ×5 within 5 s), staying
+  alive ticks up 10 every 5 s. The line climbs faster and gets sharper with every knock-off. A run is 1-4 minutes.
 - **The ladder:** 5 beds to unlock, 15 stars (above).
-- **Pyjamas:** your pattern, worn on your seat's colour, picked in the lobby. Plain to start; Stripes at 2 stars, Polka
-  at 4, Checks at 6, Moons at 9, Lightning at 12, Gold Stars at 15.
-- **The nightcap:** during a match the leader on points wears a red nightcap with a pom-pom, so everyone knows whom to
-  hunt.
-- **Personal bests** (title and results): stars, match wins, knock-offs, fastest round win per bed.
-- **Leaderboards:** `knockoffs` (lifetime knock-offs), `wins` (lifetime match wins), `fastest-kid`, `fastest-bunk`,
-  `fastest-water`, `fastest-king`, `fastest-poster` (fastest round win in seconds, lower is better). The results show
-  your place when you set a best.
-- **Badges** (10):
+- **The crown:** during a match the leader on points has a felt crown floating over their head (and on their plush in
+  the strip), so everyone knows whom to hunt; the bots hunt them a little harder too.
+- **Leaderboards:** `tonight` (tonight's best Rush, kept by day), `rush` (best Rush ever), `level`, `knockoffs`, `wins`
+  and `fastest-<bed>` for the five beds (fastest round win in seconds, lower is better).
+- **Badges** (12):
 
 | id | Name | Earned |
 |---|---|---|
@@ -212,9 +250,11 @@ Each page is the authority on its own monkey; the host is the authority on bots,
 | `bunk-boss` | Bunk Boss | Win a match on the Bunk Bed. |
 | `making-waves` | Making Waves | Win a match on the Water Bed. |
 | `five-beds` | Five Beds | Win a match on every bed. |
+| `bedtime-box` | Bedtime Box | Finish all three of tonight's goals and open the box. |
+| `rush-hour` | Rush Hour | Score 1,000 in one Rush. |
 
-- **Save** (`ow.save`, one key): stars per bed, wins, knock-offs, bests, pattern, last bed, hints already shown, whether
-  the first round has been played.
+- **Save** (`ow.save`, one key): stars per bed, wins, knock-offs, bests, XP, what's worn, what came from the box,
+  tonight's goal progress, the streak, Rush bests, last bed, hints already shown.
 
 ## Balance and timing
 
@@ -237,7 +277,7 @@ Units: 1 u ≈ a monkey's height. Simulation at a fixed 120 Hz with an accumulat
 | Pillow | every 4 s (first 2 s after landing on the rug), flight 0.6 s, aim speed 5 u/s, ring of E = 0.5 |
 | Round | grace 2.5 s (no slams; bots 5 s in a player's first round); wild 40 s; overtime 70 s; Mama at 90 s; away 3 s = out |
 | Match | 3 or 5 rounds; round end 5.5 s; results 20 s public, 25 s alone |
-| Bots | reaction 0.42 − 0.27·skill s; error in reading others' heights σ = 0.45 (1 − skill) u; save slam with probability = skill; slight preference for the nightcap |
+| Bots | reaction 0.42 − 0.27·skill s; error in reading others' heights σ = 0.45 (1 − skill) u; save slam with probability = skill; slight preference for the crowned leader |
 
 **Targets** (node tests: `test/balance.test.mjs` plays 150-300 seeded rounds per case with five bots,
 `test/room.test.mjs` plays whole matches through a fake room):
@@ -263,37 +303,49 @@ slammer at a pro's skill beats careful pros (37% of rounds), so the lesson the g
 All panels are quilt patches (see Art direction). Nothing sits in the top-left 150 × 70 px or any `ow.ui.reserved` area;
 everything lays out again on `ow.on('reserved')` and resize.
 
-1. **Title.** The live bedroom (bots playing on the last bed you played), the name embroidered large across the top
-   third, the PLAY patch (amber, 64 px tall on phones, "Space" key mark) in the lower middle, and beside it a small patch:
-   ★ stars and your best. Nothing else.
-2. **Lobby.** The bed fills the screen; your monkey bounces (practice) with Biscuit the bear; other players bounce too,
+1. **Title.** The live bedroom with the cast bouncing on the last bed you played, every one in their own outfit. The
+   name in felt letters across the top, arched like a storybook. Top left, under the platform's menu, your card: your
+   plush's portrait, your level and its bar, the streak's moon and your stars. Top right, tonight's three goals, stitched
+   on as you finish them, and the Bedtime Box (locked, ready, or opened tonight). Bottom middle: **WARDROBE**, a big
+   breathing **PLAY** (Enter), and **TONIGHT'S RUSH** with tonight's bed and twist (and your best tonight). On a phone the
+   card and the goals stack above the buttons.
+2. **Wardrobe.** The camera drops close to the bed, where your monkey stands on the quilt. A felt panel (a bottom sheet
+   on a portrait phone) with five tabs (Pyjamas, Hats, Ring thread, Launch trail, Win dance) and a grid of swatches: the
+   real print on your colour, your plush in each hat, a fold of quilt in the thread, the trail's own sprites. Locked
+   ones show what opens them ("Level 21", "6 stars", "Bedtime Box"). Tap to wear: a rustle, a puff of fluff, a wave;
+   threads roll a ring under your monkey, trails orbit it, dances play. Escape or Back closes it.
+3. **Lobby.** The bed fills the screen; your monkey bounces (practice) with Biscuit the bear; other players bounce too,
    their names (white, plum outline) and a ready check in a felt circle over their heads, a small key over the host.
    Falling off in the lobby just pops you back onto the quilt. Unfilled seats: bot monkeys sitting on the rug at the
    foot of the bed, with an **Invite** patch beside them (`ow.ui.showInvite()`). Top band: five bed patches (picture of the bed, its name, its 3 stars, a stitched padlock when
-   locked; the chosen one raised), the rounds patch (3 / 5), and your pyjama patch (a swatch; tap to cycle). Only the
+   locked; the chosen one raised), and the rounds patch (3 / 5); what you wear is picked in the wardrobe. Only the
    host's patches respond; the others show the host's choice. Bottom: the platform's Ready strip.
-3. **Countdown.** Stitched numerals 3, 2, 1 drop onto the quilt with a puff; "JUMP!".
-4. **Play.** The bed, nearly edge to edge. Top centre: **the monkey strip**, a stitched band with five plush heads in
+4. **Countdown.** Stitched numerals 3, 2, 1 drop onto the quilt with a puff; "JUMP!".
+5. **Play.** The bed, nearly edge to edge. Top centre: **the monkey strip**, a stitched band with five plush heads in
    seat colours, each with its symbol, the player's name under it (cut to 8 letters) and the match points on a felt tag;
    a fallen monkey's plush tips over with a bandage. To its right, **the alarm clock**: its hand sweeps to a red WILD
    wedge at 40 s, the round's dots on its base. (On a portrait phone the strip sits below the platform's buttons and the
    clock joins its right end.) In the world: your monkey's ring of light on the quilt under it in your colour, with the
    slam cooldown as an arc that fills; a blob shadow under every monkey that shrinks as it rises (high = safe); the
    verse banner unrolling from the headboard; hints near your monkey.
-5. **Out.** Your monkey on the rug with a pillow; a stitched target circle on the quilt (your colour) with a pie that
+6. **Out.** Your monkey on the rug with a pillow; a stitched target circle on the quilt (your colour) with a pie that
    fills as the next pillow is ready.
-6. **Watching** (latecomer). The round as everyone sees it; your monkey on the rug with a "Next round" tag.
-7. **Round end** (5.5 s). The door bursts open, light wedge across the bed, Mama's silhouette, the winner frozen
+7. **Watching** (latecomer). The round as everyone sees it; your monkey on the rug with a "Next round" tag.
+8. **Round end** (5.5 s). The door bursts open, light wedge across the bed, Mama's silhouette, the winner frozen
    mid-bounce, the banner "NO MORE MONKEYS JUMPING ON THE BED!". Then the points fly: +3 from the winner, +1s from
-   each knock-off, onto the strip's tags; the nightcap moves to the leader's head.
-8. **Results.** The winner bouncing alone on the bed in a burst of pillow feathers, the others on the rug. A big quilt
-   patch: places 1-5 (avatar head for players, plush head for bots, name, points), then your line: stars earned this
-   match popping in (★ Untouchable), "Bunk Bed unlocked" stitched on as a new patch, a new best with its board place.
-   One button: **Play again** (Enter; readies you, and skips the wait if you're the host). After the timer, the lobby.
-   On a short landscape phone the card sits on the right and the winner stays in view on the left.
-9. **Paused** (solo only). One patch, "Paused", **Resume**.
-10. **Room closed.** One patch, one button: "You were removed" + Play; "Disconnected" + Rejoin; "Playing in another
+   each knock-off, onto the strip's tags; the crown moves to the leader.
+9. **Results.** The winner dances its win dance on the bed in a burst of confetti, the others sit on the rug. A felt
+   card on two columns: places 1-5 (portraits of the plush, names, points) and the ladder line (stars earned popping in,
+   a new bed stitched on); then your progress: XP lines counting into the level bar (a level-up chimes and shows what
+   it opened), tonight's goals ticking, the streak, the Bedtime Box opening. One button: **PLAY AGAIN** (Enter; readies
+   you, and skips the wait if you're the host). After the timer, the lobby.
+10. **Paused** (solo only). One patch, "Paused", **Resume**.
+11. **Room closed.** One patch, one button: "You were removed" + Play; "Disconnected" + Rejoin; "Playing in another
     tab" + Play here. Each calls `rooms.join` again with the same options.
+12. **Tonight's Rush.** The same bed and HUD, with the score in a felt badge at the top, the combo's fuse burning down
+    beside it, and three bandages for lives. Each knock-off pops its points where it fell; a combo of three or more calls
+    COMBO ×3 in gold, two off with one ring calls DOUBLE!. The end: a card with the score, tonight's best and your best
+    ever, tonight's board, the same progress block as the results, and **AGAIN** / **DONE**.
 
 ## Art direction
 
@@ -311,7 +363,7 @@ attic (florals, lace canopy, a grandfather clock).
 | Midnight | `#172036` | room shadows, panels |
 | Moon blue | `#8FB8FF` | moonlight, cool highlights |
 | Lamp amber | `#FFB24A` | warm light, the main accent, Play |
-| Quilt red | `#D9473B` | the quilt's lead fabric, WILD, the nightcap |
+| Quilt red | `#D9473B` | the quilt's lead fabric, WILD, the crown band |
 | Cream thread | `#FFF1D6` | text, stitches |
 | Plum ink | `#2B1B33` | text outlines, deep shadow |
 
@@ -332,12 +384,22 @@ sunk seams, on a plane of ~12k vertices displaced in the vertex shader by the sa
 uses (up to 12 rings, 6 slam dents). Each ring glows in its slammer's colour with a cream core, so who made it reads at
 a glance. The crest catches the lamp light as it rolls; the quilt's overhang ripples too.
 
-**Monkeys:** drawn 1.4× the physics body's size so they read on a phone, built in code from smooth primitives: lanky,
-long curling tails (tube along an animated spring curve), heads about 40% of the height (not babyish), half-lidded mischievous eyes with brows, a wide mouth. Pyjamas: button-up top and
-cuffed trousers in the seat colour with the pattern, the seat symbol on the chest pocket. Animation does the acting:
-squash on landing, stretch in flight, a tuck and gritted teeth on the slam, an "O" mouth and a spin when launched, arms
-windmilling on the rim, swirly eyes then a bandage and three orbiting stars on the floor, a guilty grin frozen when the
-door opens. The leader wears the nightcap. Mama is a flat backlit silhouette in the doorway: curlers, hands on hips.
+**The room** is a real bedroom at toy scale: a wood floor, plaster over painted wainscoting, a moonlit window with
+velvet curtains and a moonbeam full of dust, a bedside lamp's warm pool, fairy lights on the headboard, a wool rug, kids'
+drawings taped up, and CC0 furniture and toys from Poly Haven (a nightstand and alarm clock, a rocking chair, shelves, a
+ukulele, a boombox, a rubber duck; see CREDITS.md). **The quilt** puffs between its seams patch by patch, with a cotton
+weave, and every ring's crest is stitched in its slammer's thread colour.
+
+**Monkeys** are plush toys: one sculpted, skinned body per cast member (baked by `tools/bake.mjs`: Rumble stocky,
+Tiptoe lanky, Mimic round, Dozy soft, Biscuit a bear) in fuzzy fur with a felt face and pyjamas whose print is drawn in
+the shader. Skeleton clips blended by a mixer do the acting: squash on landing, stretch in flight, a tuck and gritted
+teeth on the slam, an "O" mouth and a spin when launched, arms windmilling on the rim, swirly eyes, then a bandage and
+orbiting stars on the floor, a guilty grin frozen when the door opens, and nine win dances. Hats fit each head. Drawn
+1.25× the physics body so they read on a phone. Mama is a flat backlit silhouette in the doorway: curlers, hands on hips.
+
+**Juice:** hit-stop and a punch-in on big slams, trauma² shake, a shock ring and dust off every impact, fluff and lint
+off the crests, sparkles on a perfect pump, the toys' glow, the launch trail you chose, confetti on a win. The camera
+frames the live monkeys (closer as fewer are left) and follows the last fall.
 
 **Lighting and camera:** three-quarter view from the foot of the bed, about 38° down (steeper and higher in portrait),
 framed from the bed's box by aspect and the HUD's measured edges so the whole bed always fits; at the round end it
@@ -347,29 +409,28 @@ light. Door: a spot only at the round end (high quality). A blob shadow under ev
 height and position over the quilt; over the floor it drops away, which is the warning). ACES tone mapping, sRGB, navy
 fog.
 
-**HUD in the world's language:** the plush strip, the felt alarm clock, the embroidered banner, stitched numerals;
-hints in white with a plum outline next to your monkey.
+**HUD in the world's language:** felt cut out and sewn with a running stitch: pillow-soft buttons, the plush strip
+(portraits rendered from the real plush), the felt alarm clock, ribbon banners, stitched numerals; hints in white with a
+plum outline next to your monkey. No glass, no gradients, no dark boxes.
 
 `ow.ui.setLook({ accent: '#FFB24A', panel: '#172036', text: '#FFF1D6' })`.
 
 ## Sound
 
-Synthesized Web Audio, all of it.
-- **Bounce:** a springy boing, pitch by height, quiet for other monkeys.
-- **Slam:** a click on the tuck, then a deep whump (60→35 Hz sine with a noise thump) and a mattress creak; bigger slams lower and louder.
-- **Ring:** a rising filtered-noise whoosh that follows the ring outward.
-- **Launch:** a thwap and a slide whistle up; tumbling: a wobble.
-- **Rim teeter:** a wah-wah wobble.
-- **Fall:** slide whistle down, a wooden bonk, a bell-like "bonng", three tiny star chimes.
-- **Pillow:** a whoosh and a soft fwump.
-- **Save slam:** the whump plus a two-note "phew" ding.
-- **Verse:** each fall plays the next line of the tune on toy piano.
-- **Wild springs:** the alarm clock's bell and a chord of spring twangs; the lamp's flicker buzz.
-- **Round end:** footsteps, a door bang, a held chord; results: a fanfare on toy piano and xylophone.
-- **UI:** a soft felt tap for patches, a stitch "zip" for banners.
-- **Music:** a small sequencer: a bouncy tune written for the game in the rhyme's chanting rhythm, on xylophone and toy
-  piano over a pizzicato bass and a brushed snare. 116 bpm in play, 140 when the springs go wild; a slow music-box version
-  on the title and lobby, quieter.
+Kenney's CC0 samples (soft impacts, cloth, creaks, footsteps, a door, plucks, chimes, pizzicato jingles; see CREDITS.md)
+layered with synthesized Web Audio.
+- **Bounce:** a springy boing, pitch by height and pump tier, quiet for other monkeys.
+- **Pump:** a note that climbs a pentatonic ladder with every perfect press in a row; a dull thud on a miss.
+- **Slam:** a cloth whoosh on the tuck, then a soft heavy impact with a sub thump, a bed creak on big ones and a shimmer
+  on a Mega Slam.
+- **Launch:** a thwap and a slide whistle up; **fall:** slide whistle down, a wooden bonk, star chimes.
+- **Toys:** each has its own grab (a golden chime, a pillow fwump, a spring boing); **twists:** a click and a sting.
+- **Pillow:** a cloth whoosh and a soft landing; pillow rain the same from above.
+- **Round end:** footsteps, the door, a held chord; results: a pizzicato jingle, level-ups, goal ticks and the box.
+- **UI:** felt plucks for buttons, a rustle and chime when you put something on.
+- **Music:** a small sequencer playing a bouncy tune in the rhyme's chanting rhythm (xylophone and toy piano over
+  pizzicato bass and brushes) that adds layers as a round heats up: a kick, a louder melody, piano, an answering octave
+  and hats as monkeys fall and the springs go wild. A slow music-box version on the title and lobby.
 
 ## Store art and the trailer
 
@@ -408,6 +469,13 @@ Mama ends every round.
   camera, room, quilt shader, monkeys, effects, textures), `ui.js` and `style.css` (patches, HUD, lobby, results),
   `input.js`, `audio.js`, `save.js`, `look.js`, `poster.js`. `?autoplay=1` (local hosts only) lets the bot brain play
   the local seat for captures; `?debug` (local only) shows the frame's draw calls.
+- Progression is pure too: `progress.js` (XP, levels, goals, streak, the box), `wardrobe.js` (the 59 items and what
+  opens them), `sim/rush.js` (a Rush run), `sim/twists.js` (a round's twist from the match id); `rushmode.js` runs a Rush
+  on the page.
+- Graphics follow `onceworlds.settings.quality`: high has the post chain (bloom, a tilt-shift and split-tone grade,
+  grain) and 2048 shadows; medium smaller; low no post, no shadows and Lambert materials (`render/lowmat.js`). A computer
+  drawing WebGL in software (SwiftShader, llvmpipe) always gets low and no portraits. A new room's shaders compile in
+  the background (`compileAsync`) before it is drawn.
 - Join first, then build the scene. Pause on `visibilitychange`. Static room geometry is merged by material; fairy
   lights and blob shadows are instanced: 134 draw calls in the lobby (measured with `?debug`).
 
@@ -418,7 +486,7 @@ Mama ends every round.
   (touch: "Tap SLAM to drop!"). The simulations check that skill wins.
 - **Latency.** Slams are sent at the press with their impact time 0.12-0.2 s ahead; remote monkeys are predicted to the
   present; the victim judges its own launch, including rings that arrived late.
-- **Small monkeys on a phone.** The camera fits the bed by aspect; monkeys are drawn 1.4× and are about 40 px tall on a
+- **Small monkeys on a phone.** The camera fits the bed by aspect; monkeys are drawn 1.25× and are about 40 px tall on a
   390 px wide portrait screen; your ring of light marks you. In a short landscape phone the bed is height-bound and
   smaller (about 25 px monkeys): playable, but portrait is the better phone view.
 - **Camping** (the headboard, the top bunk). Rims are soft, pillows are low, rings reach everywhere by wild time; the
@@ -442,4 +510,4 @@ Mama ends every round.
   knocker's colour, and the verse names both ("RUMBLE bonked PIP"). Credit goes to the monkey whose ring or pillow last
   launched the faller within 3 s.
 - **Height reads at a glance**: a blob shadow under every monkey shrinks as it rises, so "high enough to be safe" is
-  visible, and the monkeys are drawn 1.4× so they read on a 390 px phone.
+  visible, and the monkeys are drawn 1.25× so they read on a 390 px phone.

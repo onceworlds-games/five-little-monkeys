@@ -7,6 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { quiltGeometry, quiltMaterial } from './quilt.js';
 import { quiltTextures, canvas, blobTexture } from './textures.js';
 import { loadProps, placeProp, texture, texturesReady } from './props.js';
+import { lowMaterial, lowify } from './lowmat.js';
 import { createRng } from '../sim/rng.js';
 
 const OVER = 0.75;
@@ -281,9 +282,13 @@ export function buildRoom(bed, u, quality) {
   const R = ROOM_LOOKS[bed.id] ?? ROOM_LOOKS.kid;
   const group = new THREE.Group();
   const own = []; // geometries, materials and canvases this room made (props and texture maps are shared)
+  const hi = quality === 'high';
+  const low = quality === 'low';
   const mat = (m) => {
-    own.push(m);
-    return m;
+    const out = low ? lowMaterial(m) : m;
+    if (out !== m) m.dispose();
+    own.push(out);
+    return out;
   };
   const M = new Merger();
   const fl = bed.floor;
@@ -292,8 +297,6 @@ export function buildRoom(bed, u, quality) {
   const W = box.x1 + 7.2;
   const top = fl + 15;
   const front = box.z1 + 14;
-  const hi = quality === 'high';
-  const low = quality === 'low';
 
   // --- materials ---
   const floorMat = mat(new THREE.MeshStandardMaterial({
@@ -783,6 +786,7 @@ export function buildRoom(bed, u, quality) {
     if (disposed) return;
     const put = (id, o, parent = props) => {
       const g = placeProp(models, id, o);
+      if (g && low) lowify(g);
       if (g) parent.add(g);
       return g;
     };
