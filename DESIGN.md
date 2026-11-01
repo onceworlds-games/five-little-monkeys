@@ -478,8 +478,9 @@ Mama ends every round.
   reflections; the game makes its own WebGL context first and reads what draws it, so the look is picked before anything
   is built. A new room gets onto the graphics card before it is drawn (the last picture stays up): where the browser
   compiles shaders in the background, all at once with `compileAsync`; elsewhere a few shaders and textures per frame,
-  so no task holds the page for long and it keeps answering its room and the platform. Anything that turns up later (a
-  monkey, a toy) sits out a frame there until it is ready.
+  so no task holds the page for long and it keeps answering its room and the platform. There a new room waits up to
+  1.5 s for all of it, then draws what is ready while the rest comes in, and anything that turns up later (a monkey, a
+  toy) sits out a frame until it is ready.
 - Join first, then build the scene. Pause on `visibilitychange`. Static room geometry is merged by material; fairy
   lights and blob shadows are instanced: 134 draw calls in the lobby (measured with `?debug`).
 

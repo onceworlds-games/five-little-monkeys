@@ -49,7 +49,7 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   // A new room gets onto the graphics card before it is drawn (see prepare), so the page never stalls.
   let needWarm = false;
   let warming = 0;
-  let holding = false;
+  let holdUntil = 0;
   let q = quality;
   const monkeys = new Map();
   let base = 0;
@@ -397,15 +397,15 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     if (needWarm) {
       needWarm = false;
       if (parallel) warmAll();
-      else holding = true;
+      else holdUntil = performance.now() + 1500;
     }
     if (warming > 0) return;
     if (parallel || poster) {
       stage.draw(dt);
       return;
     }
-    if (!prepare(holding)) return;
-    holding = false;
+    if (!prepare(performance.now() < holdUntil)) return;
+    holdUntil = 0;
     stage.draw(dt);
     for (const o of hidden) o.visible = true;
     hidden.length = 0;
@@ -414,8 +414,9 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   // Getting the room onto the graphics card. Where the browser compiles shaders in the background
   // (KHR_parallel_shader_compile), a new room compiles all at once with compileAsync before it is drawn. Elsewhere
   // (software graphics, some phones) shaders compile and textures upload a few at a time, in one short task per frame,
-  // so the page keeps answering its room, its input and the platform: a new room waits until all of it is there (the
-  // last picture stays up), and anything that turns up later (a monkey, a toy, a burst) sits out a frame until it's ready.
+  // so the page keeps answering its room, its input and the platform: a new room waits up to 1.5 s for all of it (the
+  // last picture stays up), then draws what is ready while the rest comes in; anything that turns up later (a monkey, a
+  // toy, a burst) sits out a frame until it's ready.
   const gpu = stage.renderer;
   const parallel = !!gpu.getContext().getExtension('KHR_parallel_shader_compile') && !!gpu.compileAsync;
   function warmAll() {
