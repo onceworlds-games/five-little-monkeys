@@ -474,8 +474,12 @@ Mama ends every round.
   on the page.
 - Graphics follow `onceworlds.settings.quality`: high has the post chain (bloom, a tilt-shift and split-tone grade,
   grain) and 2048 shadows; medium smaller; low no post, no shadows and Lambert materials (`render/lowmat.js`). A computer
-  drawing WebGL in software (SwiftShader, llvmpipe) always gets low and no portraits. A new room's shaders compile in
-  the background (`compileAsync`) before it is drawn.
+  drawing WebGL in software (SwiftShader, llvmpipe) always gets low, at 0.6 pixel ratio, with no portraits and no room
+  reflections; the game makes its own WebGL context first and reads what draws it, so the look is picked before anything
+  is built. A new room gets onto the graphics card before it is drawn (the last picture stays up): where the browser
+  compiles shaders in the background, all at once with `compileAsync`; elsewhere a few shaders and textures per frame,
+  so no task holds the page for long and it keeps answering its room and the platform. Anything that turns up later (a
+  monkey, a toy) sits out a frame there until it is ready.
 - Join first, then build the scene. Pause on `visibilitychange`. Static room geometry is merged by material; fairy
   lights and blob shadows are instanced: 134 draw calls in the lobby (measured with `?debug`).
 

@@ -38,17 +38,18 @@ const smooth = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
-export function createView(canvasEl, { quality = 'high', poster = false, pixelRatio = 1 } = {}) {
-  const stage = createStage(canvasEl, { quality, poster, pixelRatio });
+export function createView(canvasEl, { quality = 'high', poster = false, pixelRatio = 1, context = null, software = false } = {}) {
+  const stage = createStage(canvasEl, { quality, poster, pixelRatio, context, software });
   const { scene, camera } = stage;
   const u = ringUniforms();
   const fx = createFx(scene);
   const toys = createToys(scene);
   let room = null;
   let bedId = '';
-  // A new room's shaders compile in the background (where the browser can) before it is drawn, so the page never stalls.
+  // A new room gets onto the graphics card before it is drawn (see prepare), so the page never stalls.
   let needWarm = false;
   let warming = 0;
+  let holding = false;
   let q = quality;
   const monkeys = new Map();
   let base = 0;
@@ -395,71 +396,129 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     fx.update(dt, t, h / (2 * Math.tan(THREE.MathUtils.degToRad(camFov / 2))), camera);
     if (needWarm) {
       needWarm = false;
-      startWarm();
+      if (parallel) warmAll();
+      else holding = true;
     }
-    if (warmList) stepWarm();
-    if (warming > 0 || warmList) return;
+    if (warming > 0) return;
+    if (parallel || poster) {
+      stage.draw(dt);
+      return;
+    }
+    if (!prepare(holding)) return;
+    holding = false;
     stage.draw(dt);
+    for (const o of hidden) o.visible = true;
+    hidden.length = 0;
   }
 
-  // Warming a new room's shaders. Where the browser compiles in the background (KHR_parallel_shader_compile), all at once
-  // with compileAsync. Elsewhere (software graphics, some phones) one shader per frame, so no single task holds the page
-  // for long: the page keeps answering its room, its input and the platform while the room comes in.
-  let warmList = null;
-  function startWarm() {
-    const r = stage.renderer;
-    const target = stage.sceneTarget();
-    const prev = r.getRenderTarget();
+  // Getting the room onto the graphics card. Where the browser compiles shaders in the background
+  // (KHR_parallel_shader_compile), a new room compiles all at once with compileAsync before it is drawn. Elsewhere
+  // (software graphics, some phones) shaders compile and textures upload a few at a time, in one short task per frame,
+  // so the page keeps answering its room, its input and the platform: a new room waits until all of it is there (the
+  // last picture stays up), and anything that turns up later (a monkey, a toy, a burst) sits out a frame until it's ready.
+  const gpu = stage.renderer;
+  const parallel = !!gpu.getContext().getExtension('KHR_parallel_shader_compile') && !!gpu.compileAsync;
+  function warmAll() {
+    const prev = gpu.getRenderTarget();
     try {
-      if (r.getContext().getExtension('KHR_parallel_shader_compile') && r.compileAsync) {
-        r.setRenderTarget(target);
-        warming++;
-        Promise.race([r.compileAsync(scene, camera), new Promise((ok) => setTimeout(ok, 8000))])
-          .catch(() => {})
-          .finally(() => warming--);
-        return;
-      }
-      const seen = new Set();
-      warmList = [];
-      scene.traverse((o) => {
-        if (!(o.isMesh || o.isPoints || o.isSprite || o.isLine) || !o.material) return;
-        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
-          if (seen.has(m)) continue;
-          seen.add(m);
-          warmList.push(o);
-          break;
-        }
-      });
-      warmT0 = performance.now();
+      gpu.setRenderTarget(stage.sceneTarget());
+      warming++;
+      Promise.race([gpu.compileAsync(scene, camera), new Promise((ok) => setTimeout(ok, 8000))])
+        .catch(() => {})
+        .finally(() => warming--);
     } catch (err) {
       console.warn('warm', err);
-      warmList = null;
     } finally {
-      r.setRenderTarget(prev);
+      gpu.setRenderTarget(prev);
     }
   }
-  let warmT0 = 0;
-  function stepWarm() {
-    const r = stage.renderer;
-    const prev = r.getRenderTarget();
-    const before = r.info.programs.length;
+
+  const TEX_KEYS = [
+    'map', 'alphaMap', 'emissiveMap', 'normalMap', 'bumpMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'lightMap',
+    'specularMap', 'displacementMap', 'envMap', 'gradientMap', 'matcap', 'sheenColorMap', 'sheenRoughnessMap',
+    'clearcoatMap', 'clearcoatNormalMap', 'clearcoatRoughnessMap', 'transmissionMap', 'thicknessMap',
+  ];
+  const texLists = new WeakMap();
+  /** The textures a material draws with (its maps and its own shader's uniforms), cached until the material changes. */
+  function texturesOf(m) {
+    const got = texLists.get(m);
+    if (got && got.v === m.version) return got.list;
+    const list = [];
+    for (const k of TEX_KEYS) if (m[k]?.isTexture) list.push(m[k]);
+    for (const uu of [m.uniforms, m.userData?.u, m.userData?.uniforms]) {
+      if (uu) for (const k in uu) if (uu[k]?.value?.isTexture) list.push(uu[k].value);
+    }
+    texLists.set(m, { v: m.version, list });
+    return list;
+  }
+  // What was already tried, by version: a texture that can't upload (no picture yet) never holds the room.
+  const tried = new WeakMap();
+  const texReady = (t) =>
+    t.isRenderTargetTexture || t.isVideoTexture || t.version === 0 || gpu.properties.get(t).__version === t.version || tried.get(t) === t.version;
+  function matReady(m) {
+    if (!m) return true;
+    const p = gpu.properties.get(m);
+    if (!p.currentProgram || (p.__version !== m.version && tried.get(m) !== m.version)) return false;
+    for (const t of texturesOf(m)) if (!texReady(t)) return false;
+    return true;
+  }
+  const isReady = (o) => (Array.isArray(o.material) ? o.material.every(matReady) : matReady(o.material));
+  function prime(o) {
+    try {
+      for (const m of gpu.compile(o, camera, scene)) gpu.properties.get(m).currentProgram?.getUniforms();
+    } catch (err) {
+      console.warn('prepare', err);
+    }
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      if (!m) continue;
+      tried.set(m, m.version);
+      for (const t of texturesOf(m)) {
+        if (texReady(t)) continue;
+        try {
+          gpu.initTexture(t);
+        } catch (err) {
+          console.warn('prepare', err);
+        }
+        tried.set(t, t.version);
+      }
+    }
+  }
+  const late = [];
+  const hidden = [];
+  /**
+   * Compile and upload what isn't ready yet, for about one frame's worth of time. `all`: everything in the scene,
+   * shown or not, and false while any of it is still missing (a new room). Otherwise what is shown, and what is still
+   * missing is hidden for this frame (shown again after the draw).
+   */
+  function prepare(all) {
+    late.length = 0;
+    const visit = (o) => {
+      if ((o.isMesh || o.isPoints || o.isSprite || o.isLine) && o.material && !isReady(o)) late.push(o);
+    };
+    if (all) scene.traverse(visit);
+    else scene.traverseVisible(visit);
+    if (!late.length) return true;
+    const prev = gpu.getRenderTarget();
     const t0 = performance.now();
     try {
-      r.setRenderTarget(stage.sceneTarget());
-      while (warmList.length) {
-        const o = warmList.shift();
-        if (!o.parent) continue;
-        for (const m of r.compile(o, camera, scene)) r.properties.get(m).currentProgram?.getUniforms();
-        if (r.info.programs.length > before || performance.now() - t0 > 24) break;
+      gpu.setRenderTarget(stage.sceneTarget());
+      for (const o of late) {
+        if (!isReady(o)) prime(o);
+        if (performance.now() - t0 > 14) break;
       }
-    } catch (err) {
-      console.warn('warm', err);
-      warmList.length = 0;
     } finally {
-      r.setRenderTarget(prev);
+      gpu.setRenderTarget(prev);
     }
-    // Never wait for ever: after 30 s the rest compiles as it is drawn.
-    if (!warmList.length || performance.now() - warmT0 > 30000) warmList = null;
+    let missing = false;
+    for (const o of late) {
+      if (isReady(o)) continue;
+      missing = true;
+      if (!all) {
+        o.visible = false;
+        hidden.push(o);
+      }
+    }
+    return !(all && missing);
   }
 
   /** Screen position (CSS px) of a world point. */

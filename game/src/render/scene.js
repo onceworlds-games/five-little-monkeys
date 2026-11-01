@@ -68,9 +68,14 @@ void main() {
 }`,
 };
 
-export function createStage(canvasEl, { quality = 'high', poster = false, pixelRatio = 1 } = {}) {
+/**
+ * opts: { quality, poster, pixelRatio, context: a WebGL2 context already made on the canvas, software: drawing without a
+ * GPU (no room reflections then: they cost seconds to make there) }.
+ */
+export function createStage(canvasEl, { quality = 'high', poster = false, pixelRatio = 1, context = null, software = false } = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas: canvasEl,
+    context,
     antialias: quality === 'low',
     preserveDrawingBuffer: poster,
     powerPreference: 'high-performance',
@@ -84,10 +89,12 @@ export function createStage(canvasEl, { quality = 'high', poster = false, pixelR
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#0E1426');
   scene.fog = new THREE.Fog('#0E1426', 34, 70);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  if (!software) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  }
   scene.environmentIntensity = 0.22;
-  pmrem.dispose();
 
   const camera = new THREE.PerspectiveCamera(32, 1, 0.3, 140);
 

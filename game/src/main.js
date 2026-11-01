@@ -38,16 +38,37 @@ const SHORT = { kid: 'KID', bunk: 'BUNK', water: 'WATER', king: 'KING', poster: 
 const BISCUIT = { hex: '#9A6A3E', dark: '#5A3A1E', symbol: '', pattern: 'plain', extra: 'bear', hat: 'none' };
 const TOY_NAMES = { mega: 'GOLDEN BANANA', shield: 'PILLOW', spring: 'SPRING' };
 
-// A computer drawing WebGL in software (no GPU) gets the low look whatever is asked: shaders compile and shade on the CPU.
-// ?quality=low|medium|high (local only) picks one, for pictures. Read from the game's own context once it exists.
+// A computer drawing WebGL in software (no GPU) gets the low look whatever is asked, at a lower resolution: shaders
+// compile and shade on the CPU. ?quality=low|medium|high (local only) picks one, for pictures.
 let SOFTWARE = false;
-function softwareGL(renderer) {
+/**
+ * The game's own WebGL2 context, made before the renderer so the look can be picked from what draws it (a second
+ * context just to ask would cost seconds in software). Without antialiasing: on a GPU that wants it (the low look draws
+ * straight to the screen), the canvas is swapped for a fresh one and the renderer makes its own.
+ */
+function openContext(canvas, wantsAntialias) {
+  let gl = null;
   try {
-    const gl = renderer.getContext();
-    const info = gl.getExtension('WEBGL_debug_renderer_info');
-    return /swiftshader|llvmpipe|softpipe|software/i.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+    gl = canvas.getContext('webgl2', { alpha: false, antialias: false, depth: true, stencil: false, powerPreference: 'high-performance' });
   } catch {
-    return false;
+    gl = null;
+  }
+  if (!gl) return { canvas, context: null, software: false };
+  let software = false;
+  try {
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    software = /swiftshader|llvmpipe|softpipe|software/i.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
+  } catch {
+    software = false;
+  }
+  if (software || FORCED || !wantsAntialias) return { canvas, context: gl, software };
+  try {
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    const fresh = canvas.cloneNode(false);
+    canvas.replaceWith(fresh);
+    return { canvas: fresh, context: null, software };
+  } catch {
+    return { canvas, context: gl, software };
   }
 }
 const FORCED = LOCAL && ['low', 'medium', 'high'].includes(params.get('quality')) ? params.get('quality') : null;
@@ -69,11 +90,13 @@ const settings = {
     }
   },
   pr() {
+    let pr = 1;
     try {
-      return ow?.settings?.pixelRatio ? ow.settings.pixelRatio(2) : Math.min(devicePixelRatio || 1, 2);
+      pr = ow?.settings?.pixelRatio ? ow.settings.pixelRatio(2) : Math.min(devicePixelRatio || 1, 2);
     } catch {
-      return 1;
+      pr = 1;
     }
+    return SOFTWARE ? Math.min(pr, 0.6) : pr;
   },
 };
 
@@ -108,13 +131,13 @@ async function boot() {
   }
   safe(() => ow?.ui?.setLook({ accent: '#FFB24A', panel: '#172036', text: '#FFF1D6' }));
 
-  const canvasEl = document.getElementById('c');
-  const view = createView(canvasEl, { quality: settings.quality, pixelRatio: settings.pr() });
-  SOFTWARE = !FORCED && softwareGL(view.stage.renderer);
-  if (SOFTWARE) {
-    view.setQuality('low');
-    view.setPortraits(false);
-  }
+  const gl = openContext(document.getElementById('c'), settings.quality === 'low');
+  const canvasEl = gl.canvas;
+  SOFTWARE = !FORCED && gl.software;
+  const view = createView(canvasEl, { quality: settings.quality, pixelRatio: settings.pr(), context: gl.context, software: SOFTWARE });
+  if (SOFTWARE) view.setPortraits(false);
+  // Local hosts only: the view, for measuring from the console (programs, draw calls).
+  if (LOCAL) window.__flmView = view;
   const input = createInput(ow);
   const uiRoot = document.getElementById('ui');
 
@@ -1727,5 +1750,10 @@ async function boot() {
 
   if (AUTO) startAudio();
   else safe(() => G.room?.hideLobby?.(true));
+  // Autoplay (local captures): &rush=1 goes straight into Tonight's Rush.
+  if (AUTO && params.get('rush') === '1') {
+    G.screen = 'title';
+    startRush();
+  }
   requestAnimationFrame(frame);
 }
