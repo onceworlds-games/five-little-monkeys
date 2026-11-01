@@ -35,7 +35,7 @@ export const BEDS = [
     id: 'water', name: 'Water Bed', index: 2, quick: 40, skill: [0.5, 0.7],
     surfaces: [{ x0: -3.5, x1: 3.5, z0: -4, z1: 4, top: 0, open: OPEN }],
     walls: [{ x0: -3.8, x1: 3.8, z0: -4.4, z1: -4.0, y0: -1.4, y1: 0.9 }],
-    phys: { waveSpeed: 0.65, waveAmp: 1.05, waveReach: 1.2, reflect: 0.4, swell: 0.19 },
+    phys: { waveSpeed: 0.65, waveAmp: 0.95, waveReach: 1.15, reflect: 0.4, swell: 0.19 },
     spawns: [[0, 2.1], [2.0, 0.6], [1.2, -1.7], [-1.2, -1.7], [-2.0, 0.6]],
   }),
   bed({
@@ -61,7 +61,7 @@ export const BEDS = [
     ],
     // The canopy: a monkey's head stops here (its feet at 1.85 above the quilt).
     ceiling: 2.8,
-    phys: { push: 1.3 },
+    phys: { push: 1.4 },
     spawns: [[0, 1.9], [1.8, 0.6], [1.1, -1.5], [-1.1, -1.5], [-1.8, 0.6]],
   }),
 ];

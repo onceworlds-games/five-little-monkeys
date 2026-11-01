@@ -1,28 +1,30 @@
 // Rings in the quilt. A ring is a pure function of where and when it started and how much energy it has, so every page
 // draws and judges the same ring from one small message. The quilt shader uses the same formulas.
-import { WAVE, clamp } from './config.js';
+import { WAVE, MEGA, clamp } from './config.js';
 
 const TAU_PI = Math.PI;
 
 /**
- * A ring from a slam or a pillow. `amp` is the round's ring multiplier (wild springs), `t0` when it starts, `si` the
- * mattress it rolls on. Water beds add reflections: mirror images of the centre across each side of the mattress.
+ * A ring from a slam, a pillow or the pillow rain. `amp` is the round's ring multiplier (wild springs), `t0` when it
+ * starts, `si` the mattress it rolls on, `mega` a golden-banana slam. Water beds (and the Echo twist, `reflect`) add
+ * reflections: mirror images of the centre across each side of the mattress.
  */
-export function makeWave({ id, owner = '', kind = 'slam', x, z, e, t0, si = 0, amp = 1 }, bed) {
+export function makeWave({ id, owner = '', kind = 'slam', x, z, e, t0, si = 0, amp = 1, mega = false, reflect = null }, bed) {
   const p = bed.phys;
-  const E = clamp(Number(e) || WAVE.minE, WAVE.minE, WAVE.maxE);
+  const E = clamp(Number(e) || WAVE.minE, WAVE.minE, mega ? MEGA.maxE : WAVE.maxE);
   const m = clamp(Number(amp) || 1, 1, 1.4);
+  const g = mega ? MEGA : null;
   const w = {
-    id: String(id), owner: String(owner), kind, x, z, e: E, t0, si, m,
-    c: WAVE.speed(E) * p.waveSpeed,
-    R: WAVE.reach(E) * p.waveReach,
-    A: WAVE.amp(E) * p.waveAmp * m,
-    push: (1 + 0.75 * (m - 1)) * p.push,
+    id: String(id), owner: String(owner), kind, mega: !!mega, x, z, e: E, t0, si, m,
+    c: WAVE.speed(Math.min(E, WAVE.maxE)) * p.waveSpeed,
+    R: WAVE.reach(Math.min(E, WAVE.maxE)) * p.waveReach * (g ? g.reach : 1),
+    A: WAVE.amp(E) * p.waveAmp * m * (g ? g.amp : 1),
+    push: (1 + 0.75 * (m - 1)) * p.push * (g ? g.push : 1),
     src: [[x, z, 1]],
   };
   const s = bed.surfaces[si];
-  if (p.reflect > 0 && s) {
-    const f = p.reflect;
+  const f = reflect ?? p.reflect;
+  if (f > 0 && s) {
     w.src.push([2 * s.x0 - x, z, f], [2 * s.x1 - x, z, f], [x, 2 * s.z0 - z, f], [x, 2 * s.z1 - z, f]);
   }
   w.life = (w.R + WAVE.half) / w.c + 0.05;

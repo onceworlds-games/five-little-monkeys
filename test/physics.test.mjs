@@ -37,7 +37,7 @@ test('a monkey bounces by itself to the base apex, about once a second', () => {
 test('wild springs bounce higher', () => {
   const b = createBody('a', kid, 0, 0, 0, 0, 0);
   const { maxY } = run(b, kid, 4, {}, [], levelAt(60), 50);
-  assert.ok(maxY > 2.4 && maxY < 2.75, `wild apex ${maxY}`);
+  assert.ok(maxY > APEX.wild - 0.1 && maxY < APEX.wild + 0.1, `wild apex ${maxY}`);
 });
 
 test('steering moves the monkey; off the edge it falls to the floor and is out', () => {

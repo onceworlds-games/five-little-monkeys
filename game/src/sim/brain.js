@@ -1,27 +1,32 @@
-// The bots' brains. Each bot sees the bed like a player does (positions, heights, rings), with a reaction time and errors
-// in how well it reads heights, and drives its monkey through the same steering and slam as a player.
-import { G, APEX, CONTACT, SLAM, WAVE, LAUNCH, PILLOW, STEER, clamp } from './config.js';
+// The bots' brains. Each bot sees the bed like a player does (positions, heights, rings, toys, dizzy stars), with a
+// reaction time, a timing error on the pump that shrinks with skill and errors in how well it reads heights, and drives
+// its monkey through the same steering and the same one button as a player.
+import { G, APEX, CONTACT, SLAM, WAVE, LAUNCH, PILLOW, STEER, PUMP, DIZZY, MEGA, clamp } from './config.js';
 import { edgeDistance, edgeAlong, inside, clampToBed } from './beds.js';
-import { canSlam, diveTime, v0For } from './body.js';
+import { canSlam, diveTime, v0For, tierApex, timeToLand, pressMeaning, slamEnergy } from './body.js';
 import { ampAt } from './waves.js';
 import { createRng } from './rng.js';
 
 /**
  * Personalities. threshold: how sure a slam must look; margin: distance kept from open edges; chase: how much it hunts;
- * defend: how well it jumps rings and fights launches.
+ * defend: how well it jumps rings and fights launches; pump: how often it pumps a bounce; build: the pump tier it likes to
+ * reach before it slams; greed: how much it wants each toy; bully: how much it picks on dizzy monkeys.
  */
 export const PERSONALITIES = {
-  rumble: { threshold: 0.15, margin: 0.9, chase: 0.9, defend: 0.45, save: 0.6 },
-  tiptoe: { threshold: 0.55, margin: 1.7, chase: 0.25, defend: 1.0, save: 1.0 },
-  mimic: { threshold: 0.28, margin: 1.2, chase: 0.55, defend: 0.7, save: 0.8, mimic: true },
-  dozy: { threshold: 0.55, margin: 1.2, chase: 0.5, defend: 0.75, save: 0.9, sleepy: true },
-  pro: { threshold: 0.3, margin: 1.3, chase: 0.6, defend: 0.9, save: 1.0 },
-  novice: { threshold: 0.0, margin: 0.5, chase: 0.5, defend: 0, save: 0, novice: true },
-  camper: { threshold: 99, margin: 2.2, chase: 0, defend: 0.9, save: 1.0, camper: true },
-  dummy: { threshold: 99, margin: 0, chase: 0, defend: 0, save: 0, dummy: true },
+  rumble: { threshold: 0.15, margin: 1.0, chase: 0.9, defend: 0.6, save: 0.75, pump: 0.95, build: 1, greed: { mega: 1.5, shield: 0.4, spring: 0.7 }, bully: 1.2 },
+  tiptoe: { threshold: 0.55, margin: 1.7, chase: 0.25, defend: 1.0, save: 1.0, pump: 0.95, build: 3, greed: { mega: 0.3, shield: 1.3, spring: 1.1 }, bully: 0.3 },
+  mimic: { threshold: 0.26, margin: 1.25, chase: 0.6, defend: 0.8, save: 0.9, pump: 0.9, build: 1, greed: { mega: 1.0, shield: 0.9, spring: 1.0 }, bully: 0.8, mimic: true },
+  dozy: { threshold: 0.55, margin: 1.2, chase: 0.5, defend: 0.75, save: 0.9, pump: 0.85, build: 1, greed: { mega: 1.0, shield: 0.9, spring: 0.9 }, bully: 0.8, sleepy: true },
+  pro: { threshold: 0.3, margin: 1.3, chase: 0.6, defend: 0.9, save: 1.0, pump: 0.95, build: 2, greed: { mega: 1.1, shield: 0.9, spring: 0.8 }, bully: 1.0 },
+  novice: { threshold: 0.0, margin: 0.5, chase: 0.5, defend: 0, save: 0, pump: 0.3, build: 0, greed: { mega: 0.5, shield: 0.5, spring: 0.5 }, bully: 0, novice: true },
+  camper: { threshold: 99, margin: 2.2, chase: 0, defend: 0.9, save: 1.0, pump: 0.95, build: 3, greed: { mega: 0.1, shield: 0.8, spring: 0.7 }, bully: 0, camper: true },
+  dummy: { threshold: 99, margin: 0, chase: 0, defend: 0, save: 0, pump: 0, build: 0, greed: { mega: 0, shield: 0, spring: 0 }, bully: 0, dummy: true },
 };
 
-/** A body's feet height above its surface `dt` seconds ahead, if nothing hits it (its bounce, at the round's apex). */
+/** The apex a monkey is bouncing toward on its next bounces (its pump tier at the round's apex). */
+export const bounceApex = (o, level) => (o.low ? SLAM.rebound : tierApex(level.apex, o.tier ?? 0));
+
+/** A body's feet height above its surface `dt` seconds ahead, if nothing hits it (its bounce, at apex `apex`). */
 export function predictFeet(bed, o, dt, apex) {
   const s = bed.surfaces[o.si];
   if (!s || o.out) return 9;
@@ -29,14 +34,12 @@ export function predictFeet(bed, o, dt, apex) {
   let y = o.mode === 'contact' ? 0 : o.y - s.top;
   let vy = o.vy;
   let t = dt;
-  let contact = o.mode === 'contact' ? o.tc : 0;
-  let nextApex = o.mode === 'contact' ? o.apexNext : o.low ? SLAM.rebound : apex;
+  const contact = o.mode === 'contact' ? o.tc : 0;
   if (o.mode === 'contact') {
     if (t <= contact) return 0;
     t -= contact;
     vy = v0For(o.low ? SLAM.rebound : apex);
     y = 0;
-    nextApex = apex;
   }
   for (let i = 0; i < 6; i++) {
     const land = (vy + Math.sqrt(vy * vy + 2 * G * Math.max(0, y))) / G;
@@ -45,8 +48,7 @@ export function predictFeet(bed, o, dt, apex) {
     if (t <= CONTACT) return 0;
     t -= CONTACT;
     y = 0;
-    vy = v0For(nextApex);
-    nextApex = apex;
+    vy = v0For(apex);
   }
   return 0;
 }
@@ -54,22 +56,22 @@ export function predictFeet(bed, o, dt, apex) {
 const ringSpeed = (bed, e) => WAVE.speed(e) * bed.phys.waveSpeed;
 
 /** A ring's crest height at distance d for a slam of energy e (the same formula the ring uses). */
-function crestFor(bed, e, d, amp) {
+function crestFor(bed, e, d, amp, mega = false) {
   const E = clamp(e, WAVE.minE, WAVE.maxE);
-  const w = { R: WAVE.reach(E) * bed.phys.waveReach, A: WAVE.amp(E) * bed.phys.waveAmp * amp };
+  const w = { R: WAVE.reach(E) * bed.phys.waveReach * (mega ? MEGA.reach : 1), A: WAVE.amp(E) * bed.phys.waveAmp * amp * (mega ? MEGA.amp : 1) };
   return ampAt(w, d);
 }
 
 /**
- * A brain for one bot. `act(self, world, t)` returns { x, z, slam } for this step.
- * world: { bed, bodies, waves, level, slamsOn, leader }.
+ * A brain for one bot. `act(self, world, t)` returns { x, z, slam } for this step (slam: the one button).
+ * world: { bed, bodies, waves, level, slamsOn, leader, alive, toys }.
  */
 export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
   const p = PERSONALITIES[kind] ?? PERSONALITIES.pro;
   const rng = createRng(seed);
   const st = {
-    nextPlan: 0, tx: 0, tz: 0, slamAt: -1, nextEval: 0, defendUntil: 0, dx: 0, dz: 0,
-    launchSeen: -1, counterAt: 0, saveDecided: -1, jx: 0, jz: 0, nextJitter: 0, lastSeenSlam: '',
+    nextPlan: 0, tx: 0, tz: 0, slamAt: -1, nextEval: 0, defendUntil: 0, dx: 0, dz: 0, toy: -1,
+    launchSeen: -1, counterAt: 0, saveDecided: -1, jx: 0, jz: 0, nextJitter: 0, lastSeenSlam: '', pumpFor: -99, pumpAt: -1,
   };
 
   // Dozy wakes up when the springs go wild, or when the bed gets quiet (three monkeys left).
@@ -90,22 +92,32 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
     const here = bed.surfaces[self.si] ?? bed.surfaces[0];
     let best = null;
     // Spots on this mattress, and on any other one this monkey can reach (climbing onto the top bunk, dropping off it).
-    const reach = (s) => s === here || s.top <= here.top + world.level.apex - 0.35;
+    const myApex = bounceApex(self, world.level);
+    const reach = (s) => s === here || s.top <= here.top + Math.max(world.level.apex, myApex) - 0.35;
     const candidates = [];
     for (const s of bed.surfaces) {
       if (!reach(s)) continue;
-      candidates.push([s.cx, s.cz, s]);
+      candidates.push([s.cx, s.cz, s, null]);
       const n = s === here ? 9 : 4;
-      for (let i = 0; i < n; i++) candidates.push([rng.range(s.x0 + 0.4, s.x1 - 0.4), rng.range(s.z0 + 0.4, s.z1 - 0.4), s]);
+      for (let i = 0; i < n; i++) candidates.push([rng.range(s.x0 + 0.4, s.x1 - 0.4), rng.range(s.z0 + 0.4, s.z1 - 0.4), s, null]);
     }
     for (const o of world.bodies) {
       if (o === self || o.out || o.si < 0) continue;
       const ang = rng.range(0, Math.PI * 2);
-      candidates.push([o.x + Math.cos(ang) * 1.7, o.z + Math.sin(ang) * 1.7, bed.surfaces[o.si]]);
+      candidates.push([o.x + Math.cos(ang) * 1.7, o.z + Math.sin(ang) * 1.7, bed.surfaces[o.si], null]);
     }
-    const margin = p.sleepy && !awake(world) ? 1.9 : p.margin;
-    const chase = p.sleepy && !awake(world) ? 0.1 : p.chase;
-    for (const [cx, cz, s] of candidates) {
+    // Toys on the bed (their shadows show where they'll land).
+    const sleepy = p.sleepy && !awake(world);
+    for (const toy of world.toys ?? []) {
+      if (toy.taken) continue;
+      candidates.push([toy.x, toy.z, bed.surfaces[toy.si], toy]);
+    }
+    const margin = sleepy ? 1.9 : p.margin;
+    const chase = sleepy ? 0.1 : p.chase;
+    // Monkeys holding a golden banana: keep out of their ring's reach.
+    const megas = world.bodies.filter((o) => o !== self && !o.out && o.mega > t);
+    let bestToy = -1;
+    for (const [cx, cz, s, toy] of candidates) {
       if (!s || !reach(s) || !inside(s, cx, cz, -0.2)) continue;
       const others = world.bodies.filter((o) => o !== self && !o.out && o.si === s.i);
       const edge = edgeDistance(bed, s.i, cx, cz);
@@ -117,18 +129,38 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
         if (chase > 0) {
           const oe = edgeDistance(bed, s.i, o.x, o.z);
           const near = Math.max(0, 1 - Math.abs(d - 2.0) / 2.0);
-          score += chase * near * (oe < edge ? 1.2 : 0.4) * (o.id === world.leader ? 1.3 : 1);
+          const dizzy = 1 + 0.25 * (o.dizzy ?? 0) * p.bully;
+          score += chase * near * (oe < edge ? 1.2 : 0.4) * (o.id === world.leader ? 1.3 : 1) * dizzy;
         }
       }
-      if (p.novice) score = -Math.hypot(cx - here.cx, cz - here.cz) + rng.range(0, 1.5) - (s !== here ? 9 : 0);
+      for (const o of megas) {
+        if (o.si !== s.i) continue;
+        const d = Math.hypot(o.x - cx, o.z - cz);
+        score -= Math.max(0, 1 - d / 4.2) * 2.2 * (0.4 + p.defend * 0.6);
+      }
+      if (toy) {
+        // Worth it if this monkey gets there first.
+        const mine = Math.hypot(cx - self.x, cz - self.z);
+        const rival = Math.min(99, ...world.bodies.filter((o) => o !== self && !o.out && o.si === s.i).map((o) => Math.hypot(o.x - cx, o.z - cz)));
+        const want = (p.greed[toy.kind] ?? 0.5) * (sleepy ? 0.25 : 1);
+        const late = Math.max(0, mine / STEER.max - (toy.until - t));
+        score += want * 2.4 * (mine < rival * 1.15 ? 1 : 0.35) - late * 3;
+        // The banana is wasted on a monkey that already holds one; the pillow too.
+        if ((toy.kind === 'mega' && self.mega > t) || (toy.kind === 'shield' && self.shield > t)) score -= 2;
+      }
+      if (p.novice) score = -Math.hypot(cx - here.cx, cz - here.cz) + rng.range(0, 1.5) - (s !== here ? 9 : 0) + (toy ? rng.range(0, 1.4) : 0);
       const travel = Math.hypot(cx - self.x, cz - self.z);
       score -= travel * 0.12;
       score += rng.gauss() * (1 - skill) * 0.6;
-      if (!best || score > best[2]) best = [cx, cz, score];
+      if (!best || score > best[2]) {
+        best = [cx, cz, score];
+        bestToy = toy ? toy.k : -1;
+      }
     }
     if (best) {
       st.tx = best[0];
       st.tz = best[1];
+      st.toy = bestToy;
     }
   }
 
@@ -140,7 +172,8 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
     const feetNow = self.y - s.top;
     const yAt = feetNow + self.vy * delay - 0.5 * G * delay * delay;
     if (yAt < SLAM.min + 0.05) return -1;
-    const e = yAt / APEX.base;
+    const mega = self.mega > te;
+    const e = slamEnergy(yAt, mega);
     const ti = te + SLAM.windup + diveTime(yAt);
     const c = ringSpeed(bed, clamp(e, WAVE.minE, WAVE.maxE));
     const sigma = 0.65 * (1 - skill) + 0.04;
@@ -154,28 +187,58 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
       const ox = o.x + o.vx * lookAhead * 0.6;
       const oz = o.z + o.vz * lookAhead * 0.6;
       const dd = Math.hypot(ox - self.x, oz - self.z);
-      const a = crestFor(bed, e, dd, level.amp);
+      const a = crestFor(bed, e, dd, level.amp, mega);
       if (a <= 0.05) continue;
-      const feet = predictFeet(bed, o, ti - t + dd / c, level.apex) + rng.gauss() * sigma;
+      const feet = predictFeet(bed, o, ti - t + dd / c, bounceApex(o, level)) + rng.gauss() * sigma;
       if (feet > a * 0.9) continue;
+      if (o.shield > ti) {
+        value += 0.12;
+        continue;
+      }
       const q = 1 - clamp(feet / a, 0, 1);
       const strength = Math.min(LAUNCH.maxS, a * (0.55 + 0.45 * q));
       const flight = 2 * v0For(Math.min(LAUNCH.apexMax, LAUNCH.apex0 + LAUNCH.apexK * strength)) / G;
-      const travel = LAUNCH.push * strength * bed.phys.push * flight * 0.75;
+      const dizzy = 1 + DIZZY.push * (o.dizzy ?? 0);
+      const travel = LAUNCH.push * strength * bed.phys.push * flight * 0.75 * dizzy * (mega ? MEGA.push : 1);
       const ux = dd > 0.05 ? (ox - self.x) / dd : 1;
       const uz = dd > 0.05 ? (oz - self.z) / dd : 0;
       const edge = edgeAlong(bed, o.si, ox, oz, ux, uz);
       let v = 0.15 + clamp((travel * 0.7) / Math.max(0.3, edge), 0, 1.1);
       if (o.id === world.leader) v *= 1.25;
+      v *= 1 + 0.15 * (o.dizzy ?? 0) * p.bully;
       value += v;
     }
-    // The price: after a slam this monkey bounces low with no save for a moment.
+    // The price: after a slam this monkey bounces low with no save for a moment, and its pump tier is spent.
     for (const o of world.bodies) {
       if (o === self || o.out || o.si !== self.si) continue;
       const d = Math.hypot(o.x - self.x, o.z - self.z);
-      if (d < 3.2 && canSlam(bed, o, t) && o.y - s.top > 0.9) risk += 0.12;
+      if (d < 3.2 && canSlam(bed, o, t) && o.y - s.top > 0.9) risk += 0.12 + (o.mega > t ? 0.15 : 0);
     }
-    return value - risk * skill * (p.threshold > 0.6 ? 1.6 : 1);
+    risk += 0.05 * (self.tier ?? 0);
+    // A banana about to spoil is worth using.
+    const spoil = mega && self.mega - t < 4 ? 0.25 : 0;
+    return value - risk * skill * (p.threshold > 0.6 ? 1.6 : 1) + spoil;
+  }
+
+  /** The pump: once per fall, decide whether to pump and when to press (a timing error that shrinks with skill). */
+  function pump(self, world, t, skill, out) {
+    if ((self.mode === 'air' || (self.mode === 'launched' && self.tumble <= 0)) && self.vy < 0 && !self.low && st.pumpFor !== self.landedAt) {
+      st.pumpFor = self.landedAt;
+      st.pumpAt = -1;
+      const ttl = timeToLand(world.bed, self);
+      const rate = p.pump * (p.sleepy && !awake(world) ? 0.35 : 1);
+      if (ttl < 3 && rng.next() < rate) {
+        const sigma = 0.09 * (1 - skill) + 0.015;
+        // A bot never presses so early it slams, nor so late the bounce is gone.
+        const err = clamp(rng.gauss() * sigma, -0.19, 0.11);
+        st.pumpAt = t + ttl + err;
+      }
+    }
+    if (st.pumpAt >= 0 && t >= st.pumpAt) {
+      st.pumpAt = -1;
+      const m = pressMeaning(world.bed, self, t);
+      if (m === 'pump' || m === 'early') out.slam = true;
+    }
   }
 
   function act(self, world, t) {
@@ -187,7 +250,8 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
 
     if (self.out) return pillow(self, world, t, skill, react);
 
-    if (t >= st.nextPlan) {
+    const toyGone = st.toy >= 0 && !(world.toys ?? []).some((o) => o.k === st.toy && !o.taken);
+    if (t >= st.nextPlan || toyGone) {
       plan(self, world, t, skill);
       st.nextPlan = t + rng.range(0.5, 1.0) + (1 - skill) * 0.4;
     }
@@ -200,7 +264,7 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
     let dx = st.tx - self.x;
     let dz = st.tz - self.z;
     const dist = Math.hypot(dx, dz);
-    const speedWanted = clamp(dist / 0.8, 0, 1);
+    const speedWanted = clamp(dist / (st.toy >= 0 ? 0.4 : 0.8), 0, 1);
     if (dist > 0.01) {
       dx = (dx / dist) * speedWanted;
       dz = (dz / dist) * speedWanted;
@@ -239,6 +303,7 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
     }
 
     // Jump incoming rings: shift when the crest reaches you by stepping toward or away from its centre.
+    const myApex = bounceApex(self, world.level);
     if (t < st.defendUntil) {
       out.x = st.dx;
       out.z = st.dz;
@@ -252,7 +317,7 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
         if (d < r || d - r > w.c * 0.6) continue;
         const arrive = (d - r) / w.c;
         const a = ampAt(w, d);
-        const feet = predictFeet(bed, self, arrive + react * 0.5, world.level.apex);
+        const feet = predictFeet(bed, self, arrive + react * 0.5, myApex);
         if (feet > a * 1.1) continue;
         if (rng.next() > p.defend * Math.min(1, 1.15 * skill * skill + 0.1)) {
           st.defendUntil = t + 0.25;
@@ -262,8 +327,8 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
         }
         const ux = (self.x - w.x) / (d || 1);
         const uz = (self.z - w.z) / (d || 1);
-        const early = predictFeet(bed, self, Math.max(0, (d - r - 0.6) / (w.c + STEER.max)), world.level.apex);
-        const late = predictFeet(bed, self, (d - r + 0.6) / Math.max(1, w.c - STEER.max), world.level.apex);
+        const early = predictFeet(bed, self, Math.max(0, (d - r - 0.6) / (w.c + STEER.max)), myApex);
+        const late = predictFeet(bed, self, (d - r + 0.6) / Math.max(1, w.c - STEER.max), myApex);
         const awayEdge = edgeAlong(bed, self.si, self.x, self.z, ux, uz);
         let sign = late > early ? 1 : -1;
         if (sign > 0 && awayEdge < 1.0) sign = -1;
@@ -296,13 +361,17 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
         if (rng.next() < 0.015 * (1 - skill)) v += 1;
         let thr = p.threshold;
         if (p.sleepy) thr = awake(world) ? 0.2 : 1.4;
+        // Patience: a slam spends the pump, so a bot that likes to build waits for its tier (skilled ones more).
+        thr += Math.max(0, p.build - (self.tier ?? 0)) * 0.14 * skill;
+        if (self.mega > t) thr = Math.min(thr, 0.35);
         if (v >= thr) st.slamAt = t + delay;
       }
     }
     if (st.slamAt >= 0 && t >= st.slamAt) {
       st.slamAt = -1;
-      if (canSlam(bed, self, t)) out.slam = true;
+      if (canSlam(bed, self, t) && pressMeaning(bed, self, t) === 'slam') out.slam = true;
     }
+    if (!out.slam) pump(self, world, t, skill, out);
     return out;
   }
 
@@ -314,7 +383,7 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
     for (const o of world.bodies) {
       if (o === self || o.out || o.si < 0) continue;
       const edge = edgeDistance(bed, o.si, o.x, o.z);
-      const score = -edge + (o.id === world.leader ? 0.6 : 0);
+      const score = -edge + (o.id === world.leader ? 0.6 : 0) + 0.3 * (o.dizzy ?? 0) * p.bully - (o.shield > t ? 1.5 : 0);
       if (score > bestScore) {
         bestScore = score;
         target = o;
@@ -331,7 +400,7 @@ export function createBrain(kind = 'pro', baseSkill = 0.5, seed = 1) {
       out.z = dz / d * clamp(d / 0.4, 0, 1);
     }
     if (t >= self.nextPillow && d < 0.6 && world.slamsOn) {
-      const feet = predictFeet(bed, target, PILLOW.flight + 0.1, world.level.apex) + rng.gauss() * 0.4 * (1 - skill);
+      const feet = predictFeet(bed, target, PILLOW.flight + 0.1, bounceApex(target, world.level)) + rng.gauss() * 0.4 * (1 - skill);
       if (feet < 0.35 || rng.next() < 0.01) out.slam = true;
     }
     return out;
