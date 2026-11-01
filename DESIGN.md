@@ -36,21 +36,21 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
 - **Last monkey jumping wins the round:** "NO MORE MONKEYS JUMPING ON THE BED!" The door bursts open, Mama's silhouette
   stands in the doorway light, and the winner freezes mid-bounce, caught.
 
-## The first 60 seconds
+## The first minute
 
 | Time | What the screen shows | Hint (once, then gone) |
 |---|---|---|
 | 0 s | **Title.** The bedroom at night, moonlight through the window, the bedside lamp's warm pool. Five monkeys bounce on the bed, slamming each other; one flies off and bonks on the floor. "FIVE LITTLE MONKEYS" embroidered big at the top, one amber patch button: **PLAY** (Space). Beside it, a small patch with your stars (★ 0/15). | none |
-| ~2 s | **Play** (tap, click, Space, Enter) starts the sound. The camera glides to the game view; the bots hop off and sit cross-legged on the rug at the foot of the bed; your monkey drops onto the quilt and starts bouncing. **Lobby = practice:** Biscuit, a stuffed bear, bounces passively on the bed as a target. Top band: the bed patches (only the Kid's Bed open). Bottom: the platform's Ready strip. | "WASD to steer" (phone: "Steer with the stick"), near your monkey, until you steer |
+| ~2 s | **Play** (tap, click, Space, Enter) starts the sound. The camera glides to the game view; the bots sit cross-legged on the rug at the foot of the bed with an **Invite** patch at the empty end; your monkey drops onto the quilt and starts bouncing. **Lobby = practice:** Biscuit, a stuffed bear, bounces passively on the bed as a target (each page has its own Biscuit). Top band: the bed patches (only the Kid's Bed open). Bottom: the platform's Ready strip. | "WASD to steer" (touch: "Stick to steer"), over your monkey's name tag, until you steer. Keys or touch is decided by the last input used (before any input: a touch screen without a mouse shows touch) |
 | ~4 s | You steer around. | "SPACE to slam" (phone: "Tap SLAM") |
 | ~6 s | You slam: whump, the quilt folds into a ring, Biscuit is launched and tumbles off the edge with a bonk, then pops back onto the bed. | "Knock it off!" appears the moment your first ring rolls, if Biscuit is still on |
 | ~10 s | You tap Ready. **Countdown** (the game's own, timed to the room): stitched numerals 3, 2, 1 with toy-piano notes, while the four bots hop up onto their spots. "JUMP!" | none |
-| ~14 s | **Round 1.** The verse banner unrolls from the headboard: "FIVE LITTLE MONKEYS", the melody's first line. Slams are locked for the first 1.5 s (4 s for bots in a player's first ever round). | "Stay on. Knock them off." under the banner, round 1 only |
-| ~16-25 s | First slams. A ring rolls toward you; if it catches you low you fly up spinning. | first launch: "Steer back!" with an arrow to the middle. First two launches toward an edge with slam ready: "SLAM to drop!" |
-| ~20-35 s | First fall (usually a bot): slide whistle, bonk, bandage, stars. Banner "FOUR LITTLE MONKEYS", under it "RUMBLE bonked PIP" in their colours; a "+1" flies from the faller to Rumble's plush on the strip. That plush on the strip tips over. | none |
+| ~14 s | **Round 1.** The verse banner unrolls from the headboard: "FIVE LITTLE MONKEYS", the melody's first line. Slams are locked for the first 2.5 s (bots hold theirs for 5 s in a player's first ever round). | "Stay on. Knock them off." under the banner, round 1 only |
+| ~16-25 s | First slams. A ring rolls toward you; if it catches you low you fly up spinning. | first two launches: "Steer back!". First two launches toward an edge: "SPACE to drop!" (touch: "Tap SLAM to drop!") |
+| ~20-35 s | First fall (usually a bot): slide whistle, bonk, bandage, stars. Banner "FOUR LITTLE MONKEYS", under it "RUMBLE bonked PIP" in their colours ("pillowed" for a pillow, "fell off" with no credit, "dozed off" for a player who went away); a "+1" flies from the faller to Rumble's plush on the strip. The faller's plush tips over. The cause stays on screen: the knocker's ring is drawn in its colour, and a launched monkey trails its knocker's colour. | none |
 | ~40 s | Wild springs: the alarm clock rings, the lamp flickers, the music jumps tempo, everyone bounces a metre higher. Banner "WILD SPRINGS!" | none |
 | ~45-60 s | The final two. The last fall: "NO MORE MONKEYS JUMPING ON THE BED!", the door bursts open, light wedge, Mama's silhouette, the winner frozen mid-bounce. "+3" and "+1"s fly to the strip. | none |
-| If you fall first | You land on the rug (bonk, stars), then a pillow appears in your hands and a stitched target circle appears on the quilt. The phone's button now reads "Throw". | "Throw pillows!" |
+| If you fall first | You land on the rug (bonk, stars), then a pillow appears in your hands and a stitched target circle appears on the quilt. The phone's button now reads "Throw". | "SPACE to throw pillows" (touch: "Throw pillows!") |
 
 ## Controls
 
@@ -106,10 +106,10 @@ physics, its own room, and sharper bots:
 | # | Bed | Size (u) | What's different | Bot skill |
 |---|---|---|---|---|
 | 1 | **Kid's Bed** (a kid's room) | 6 × 8 | The base game. Headboard at the back (a padded wall). | 0.30-0.50 |
-| 2 | **Bunk Bed** (an L-shaped bunk in a shared room) | top bunk 7.2 × 2.6 at height 1.25, lower bunk 7.2 × 5.6 in front of it | Two levels. Falling off the top bunk's front edge lands you on the lower bunk, not out. From the lower bunk you can climb up by steering into the top bunk at the top of a bounce. A slam that dives off the top bunk onto the lower one counts the whole drop: a monster ring. | 0.40-0.60 |
-| 3 | **Water Bed** (Grandpa's 70s den) | 7 × 8 | Slow, tall, rolling rings (speed ×0.65, height ×1.2, reach ×1.3) that **bounce back once** off the frame. A slow swell lifts and lowers everyone's bounce by ±0.3 u. | 0.50-0.70 |
-| 4 | **King Bed** (a hotel suite) | 9 × 8 | Satin: slippery. Steering is weaker (accel 8 instead of 14) and you slide on (decel 2 instead of 8); pushes ×1.2. Four big pillows by the headboard: landing on one bounces you low. | 0.60-0.80 |
-| 5 | **Four-Poster** (Grandma's attic) | 7 × 7 | Springy posts at the corners (they kick you back, restitution 1.2). A canopy 2.4 u above the quilt: bounce into it and you bonk and drop, so heights (and rings) are capped, and the wild springs bonk everyone off the canopy. | 0.70-0.90 |
+| 2 | **Bunk Bed** (an L-shaped bunk in a shared room) | top bunk 5.2 × 2.6 at height 1.25, lower bunk 7.2 × 5.6 in front of it | Two levels. Falling off the top bunk's front edge lands you on the lower bunk, not out. From the lower bunk you can climb up by steering into the top bunk at the top of a bounce. A slam that dives off the top bunk onto the lower one counts the whole drop: a monster ring. | 0.40-0.60 |
+| 3 | **Water Bed** (Grandpa's 70s den) | 7 × 8 | Slow, rolling rings (speed ×0.65, height ×1.05, reach ×1.2) that **bounce back once** off the frame (at 40%). A slow swell lifts and lowers everyone's bounce by ±19%. | 0.50-0.70 |
+| 4 | **King Bed** (a hotel suite) | 9 × 8 | Satin: slippery. Steering is weaker (accel 8 instead of 14) and you slide on (decel 2 instead of 8); pushes ×1.2. Four big pillows by the headboard: landing on one bounces you low (apex ×0.6). | 0.60-0.80 |
+| 5 | **Four-Poster** (Grandma's attic) | 7 × 7 | Springy posts at the corners (they kick you back). A canopy over the bed: a head that reaches it (feet 1.85 u above the quilt) bonks and drops, so heights (and rings) are capped, and the wild springs bonk everyone off the canopy. Pushes ×1.3. | 0.70-0.90 |
 
 **Stars:** three per bed (15 in all): ★ win a match on it; ★ **Untouchable**: win a round without being launched once;
 ★ **Quick**: win a round in under the bed's time (Kid's 30 s, Bunk 35 s, Water 40 s, King 35 s, Four-Poster 35 s; set
@@ -130,9 +130,10 @@ every pattern a few hours; the knock-off and fastest-win boards after that.
   their heads, the bed and rounds patches); the platform adds the Ready/Start strip (`lobby: 'bar'`). Public servers
   start on the room's countdown once everyone is ready; private servers wait for the host's Start (`room.canStart`).
   Joining never starts anything. The game draws its own 3-2-1 from `room.match.startsAt` (one countdown on screen).
-- **Match:** `createMatch` with `rounds: 'rounds'`, `introSeconds: 0`, `roundEndSeconds: 5`, `admit: 'round'`,
-  `resultsSeconds`: 20 in a public server (the host may skip), 0 in a private one (the host's Next). No round time limit
-  in the helper: the host ends each round by the rules below.
+- **Match:** `createMatch` with `rounds: 'rounds'`, `introSeconds: 0`, `roundEndSeconds: 5.5`, `admit: 'round'`,
+  `resultsSeconds`: 20 in a public server, 25 alone, 0 in a private one (the host's Next). No round time limit in the
+  helper: the host ends each round by the rules below. A participant whose page is on the title when a match runs
+  (a reload, a late Play) goes straight to the game screen.
 - **Scoring:** round winner (last monkey jumping) **+3**; every knock-off **+1** to whoever launched the faller (a slam
   or a pillow, credited if the fall comes within 3 s of that launch; walking off on your own scores nobody). Most points
   after 3 (or 5) rounds wins; ties share the place. If 90 s pass with more than one monkey on the bed, Mama comes in
@@ -143,10 +144,12 @@ every pattern a few hours; the knock-off and fastest-win boards after that.
   seated.
 - **Latecomers** watch the round from the rug at the foot of the bed, under a "Next round" tag, and take a bot's seat at
   the next round (`admit: 'round'`).
-- **Leavers:** a participant away for more than 3 s during a round is counted as fallen (no credit). Their points stay.
-  If they come back, they're on the rug with pillows until the next round.
+- **Leavers:** a participant away (or gone) for more than 3 s during a round is counted as fallen, kindly ("PIP dozed
+  off", no credit). Their points stay. A reload brings them straight back: on the rug with pillows for the rest of that
+  round, on the bed at the next one; never stuck watching a whole match.
 - **Host change:** the match record is the helper's; the round's falls live in `match.data`. The new host takes the
-  bots over from where every page already predicts them, and goes on.
+  bots over from where every page already predicts them, and goes on. A host that reloads puts its own monkey and the
+  bots back where its last presence had them.
 - **Solo pause:** when you are the only player, the platform menu or a hidden page pauses the bed (the bed's clock and the
   bots stop, a "Paused" patch with Resume). With other players nothing pauses.
 
@@ -154,10 +157,10 @@ every pattern a few hours; the knock-off and fastest-win boards after that.
 
 Each page is the authority on its own monkey; the host is the authority on bots, falls, rounds and points.
 
-- **Presence (20 Hz, under 300 bytes):** `{ v, r: roundId, s: state (lobby, in, launched, out, watching), x, z, y, vx,
-  vz, vy, ix, iz: steer input, t: clock time of the sample, p: pyjama pattern, L: launches so far }`, numbers rounded to
-  0.01. The host's presence also carries the bots: `b: [[seat, x, z, y, vx, vz, vy, ix, iz, s, L], ...]`, and Biscuit
-  in the lobby.
+- **Presence (20 Hz, under 300 bytes):** `{ v: 1, s: state (title, lobby, in, watch), r: round id ('L' in the lobby),
+  t: sim time of the sample, p: pyjama pattern, m: sample }`, a sample being `[mode (c contact, a air, l launched,
+  f falling, o out), x, z, y, vx, vz, vy, ix, iz (steer), tc, low, launches, aimX, aimZ (pillow aim), surface]`, numbers
+  rounded to 0.01. The host's presence also carries the bots: `b: [[seat, ...sample], ...]`.
 - **Remote monkeys are predicted, not trailed:** from each sample the page runs the same pure physics forward to now
   (the bounce arc is deterministic, the steer input held), and blends any correction out over 120 ms. Remote monkeys
   are drawn in the present, so rings and bodies line up on every screen.
@@ -171,14 +174,17 @@ Each page is the authority on its own monkey; the host is the authority on bots,
   `ow.now()` in the lobby.
 - **The victim decides its own launch** from the rings it knows, checking its own last 250 ms of positions when a ring
   message arrives late. Its launch shows on other screens through its presence (~100 ms).
-- **Falls:** the faller's page calls `host.rpc('fall', { rid, by, at })` (`by`: the seat whose ring or pillow launched
-  it within 3 s). The host checks the round id, that the seat is alive, that `by` is a seat that slammed or threw in the
-  last 4 s, and appends to `match.data.falls`. When one monkey is left (or at 90 s) the host ends the round with the
-  points as its outcome.
+- **Falls:** the faller's page calls `host.rpc('fall', { rid, by, at, kind })` (`by`: the seat whose ring or pillow
+  launched it within 3 s). Bots' falls are queued on the host and written from its tick. The host's referee
+  (`referee.js`) checks the round id, that the seat is alive, that `by` is a seat that slammed or threw in the 4 s before
+  the fall, and appends to `match.data.falls`. When one monkey is left (or at 90 s) it ends the round with the points
+  as its outcome. Out is final for the round: a late sample can't put a fallen monkey back on the bed.
 - **Wild springs and overtime** are read from round time on every page (`match.elapsed`): nobody sends them.
-- **Validation** of every message and presence: finite numbers within the bed ±2 u, energy in 0.3-1.8, `at` within
-  0.5 s of the room's clock, one slam per seat per 1.0 s, one pillow per 3.5 s, senders must be match participants (bots
-  only from the host), patterns 0-6, arrays capped at 5. Anything else is dropped. Names are drawn as text only.
+- **Validation** (`protocol.js`) of every message and presence: finite numbers within the room (the bed ±3.5 u), a
+  slam's centre on its surface, energy 0.3-1.8, `at` from 0.8 s before to 0.9 s after this page's clock, one slam per
+  seat per 0.9 s, one pillow per 3.3 s, steering within a unit, patterns known, bot rows capped at 5. During a round only
+  seats may act (a latecomer's slams are refused), pillows only in a round, bots' messages only from the host. Anything
+  else is dropped. Names are drawn as text only.
 - Rewards are cosmetic: a page that refuses to be launched spoils its own fun, not anyone's prize.
 
 ## Progression and reasons to come back
@@ -219,29 +225,38 @@ Units: 1 u ≈ a monkey's height. Simulation at a fixed 120 Hz with an accumulat
 | Gravity | 16 u/s² |
 | Bounce apex | 1.6 u (period ≈ 1.0 s: 0.89 s in the air + 0.12 s in the mattress); wild (40 s, ramps over 3 s) 2.6 u (≈ 1.26 s); overtime (70 s) 3.0 u |
 | Steering | max 3.4 u/s, accel 14 u/s², decel 8 u/s² when let go |
-| Launched (tumbling) | steering accel 3 u/s², drag 0.3/s, no slam for the first 0.25 s |
+| Launched (tumbling) | steering accel 2.5 u/s², drag 0.3/s, no slam for the first 0.25 s |
 | Mattress rim | outer 0.35 u: bounce ×0.8 and a teeter animation |
 | Fall | body centre more than 0.15 u past the mattress edge when the feet drop below the quilt |
 | Headboard / walls | bounce back with restitution 0.5 |
-| Slam | from 0.35 u up; wind-up 0.07 s (hang, tuck); dive at 14 u/s with gravity ×3; sideways speed ×0.2 at the press; cooldown 1.2 s from impact; rebound 0.6 u once |
+| Slam | from 0.35 u up; wind-up 0.07 s (hang, tuck); dive at 14 u/s with gravity ×3; sideways speed ×0.2 at the press; cooldown 1.2 s from impact; rebound 0.85 u once |
 | Slam energy | E = height above the landing surface ÷ 1.6, clamped 0.3-1.8 |
 | Ring | speed 5.5 + 2.5E u/s (E=1: 8); reach 2.6 + 2.4E u (E=1: 5); crest A0 = 0.45 + 0.55E u (E=1: 1.0), height at radius r: A0 · (1 − r/reach)^0.8, rising over the first 0.6 u; half-width 0.55 u. E=1 crest: 0.84 u at 1 u, 0.66 at 2, 0.48 at 3, 0.28 at 4 |
-| Launch | k = crest heights summed under you (crossing rings add), depth q = 1 − feet height ÷ k; strength s = k (0.55 + 0.45q), max 1.8; launch apex 1.0 + 1.6s u (max 3.6); push 3.2s u/s outward. E=1 slam, victim 1 u away on the mattress: apex ≈ 2.3 u, about 2.5 u of travel uncountered, about 1.5 u with a counter-steer |
+| Launch | k = crest heights summed under you (crossing rings add), depth q = 1 − feet height ÷ k; strength s = k (0.55 + 0.45q), max 1.8; launch apex 1.0 + 1.6s u (max 3.6); push 4.0s u/s outward. E=1 slam, victim 1 u away on the mattress: apex ≈ 2.3 u, about 2.5 u of travel uncountered, about 1.5 u with a counter-steer |
 | Wild / overtime | crest ×1.2 / ×1.4, push ×1.15 / ×1.3 |
 | Pillow | every 4 s (first 2 s after landing on the rug), flight 0.6 s, aim speed 5 u/s, ring of E = 0.5 |
-| Round | grace 1.5 s (no slams); wild 40 s; overtime 70 s; Mama at 90 s |
-| Match | 3 or 5 rounds; round end 5 s; results 20 s public |
+| Round | grace 2.5 s (no slams; bots 5 s in a player's first round); wild 40 s; overtime 70 s; Mama at 90 s; away 3 s = out |
+| Match | 3 or 5 rounds; round end 5.5 s; results 20 s public, 25 s alone |
 | Bots | reaction 0.42 − 0.27·skill s; error in reading others' heights σ = 0.45 (1 − skill) u; save slam with probability = skill; slight preference for the nightcap |
 
-**Targets** (checked by simulations in node tests, 500+ seeded rounds per bed with five bots):
-- rounds: median 35-55 s, 90% under 75 s, every one ends by 90 s; first fall median 10-20 s;
-- at least 75% of falls credited to a slam or pillow (falls come from play, not drifting off);
-- no spawn or seat advantage: equal bots each win 20% ± 5%;
-- skill matters: one 0.9 bot against four 0.4 bots wins ≥ 40% of rounds; a 0.4 bot still wins sometimes;
-- no refuge: a bot that camps the safest spot and never slams wins ≤ 15%; on the Bunk Bed a top-bunk camper ≤ 25%;
-- pillows: ≤ 25% of knock-offs, and the better of the final two still wins most duels;
-- the Quick star times sit where a 0.8 bot meets them in about one win in five;
-- nothing is NaN, no body leaves the room, every round ends.
+**Targets** (node tests: `test/balance.test.mjs` plays 150-300 seeded rounds per case with five bots,
+`test/room.test.mjs` plays whole matches through a fake room):
+- rounds: median 35-55 s, 90% under 75 s, every one ends by 90 s; first fall median 4-20 s;
+- at least 75% of falls credited to a slam or pillow (falls come from play, not drifting off); pillows at most 30% of them;
+- the cast at a bed's middle skill: each bot wins 8-40% of rounds;
+- no spawn or seat advantage: equal bots each win 13-27%;
+- skill matters: one 0.9 bot against four 0.4 bots wins ≥ 30% of rounds and ≥ 1.4× their points; a 0.4 bot still wins;
+- a beginner (careless slammer, skill 0.1) wins 10-40% against the cast on the Kid's Bed;
+- Dozy: more of his knock-offs come after the wild springs or with three left than before;
+- no refuge: a bot that camps and never slams wins ≤ 32% and scores fewer points than the active bots;
+- nothing is NaN, every round ends, every credit names a seat that acted in the 4 s before the fall.
+
+**Measured** (Kid's Bed, 400 rounds each): the cast plus a pro: median round 46 s, 90% by 54 s, first fall at 8 s,
+every fall credited, pillows 19% of knock-offs; wins Dozy 27%, Tiptoe 20%, pro 20%, Mimic 18%, Rumble 16%. A beginner
+(skill 0.1) against the cast at the bed's skill wins 22% (Dozy 32%, Mimic 17%, Tiptoe 17%, Rumble 12%). Whole 3-round
+matches over every bed through the fake room: rounds average 49 s. What the bots show: pressure pays. A careless
+slammer at a pro's skill beats careful pros (37% of rounds), so the lesson the game teaches is the one on the banner,
+"Stay on. Knock them off.": be near the others, slam from the top of your bounce, keep off the edges.
 
 ## Every screen
 
@@ -253,8 +268,8 @@ everything lays out again on `ow.on('reserved')` and resize.
    ★ stars and your best. Nothing else.
 2. **Lobby.** The bed fills the screen; your monkey bounces (practice) with Biscuit the bear; other players bounce too,
    their names (white, plum outline) and a ready check in a felt circle over their heads, a small key over the host.
-   Falling off in the lobby just pops you back onto the quilt. Unfilled seats: bot monkeys sitting on the rug at the foot of the bed, with an **Invite** patch beside them
-   (`ow.ui.showInvite()`). Top band: five bed patches (picture of the bed, its name, its 3 stars, a stitched padlock when
+   Falling off in the lobby just pops you back onto the quilt. Unfilled seats: bot monkeys sitting on the rug at the
+   foot of the bed, with an **Invite** patch beside them (`ow.ui.showInvite()`). Top band: five bed patches (picture of the bed, its name, its 3 stars, a stitched padlock when
    locked; the chosen one raised), the rounds patch (3 / 5), and your pyjama patch (a swatch; tap to cycle). Only the
    host's patches respond; the others show the host's choice. Bottom: the platform's Ready strip.
 3. **Countdown.** Stitched numerals 3, 2, 1 drop onto the quilt with a puff; "JUMP!".
@@ -263,18 +278,19 @@ everything lays out again on `ow.on('reserved')` and resize.
    a fallen monkey's plush tips over with a bandage. To its right, **the alarm clock**: its hand sweeps to a red WILD
    wedge at 40 s, the round's dots on its base. (On a portrait phone the strip sits below the platform's buttons and the
    clock joins its right end.) In the world: your monkey's ring of light on the quilt under it in your colour, with the
-   slam cooldown as an arc that fills; an arrow over you for the first 3 s of each round; the verse banner unrolling
-   from the headboard; hints near your monkey.
+   slam cooldown as an arc that fills; a blob shadow under every monkey that shrinks as it rises (high = safe); the
+   verse banner unrolling from the headboard; hints near your monkey.
 5. **Out.** Your monkey on the rug with a pillow; a stitched target circle on the quilt (your colour) with a pie that
    fills as the next pillow is ready.
 6. **Watching** (latecomer). The round as everyone sees it; your monkey on the rug with a "Next round" tag.
-7. **Round end** (5 s). The door bursts open, light wedge across the bed, Mama's silhouette, the winner frozen
+7. **Round end** (5.5 s). The door bursts open, light wedge across the bed, Mama's silhouette, the winner frozen
    mid-bounce, the banner "NO MORE MONKEYS JUMPING ON THE BED!". Then the points fly: +3 from the winner, +1s from
    each knock-off, onto the strip's tags; the nightcap moves to the leader's head.
 8. **Results.** The winner bouncing alone on the bed in a burst of pillow feathers, the others on the rug. A big quilt
    patch: places 1-5 (avatar head for players, plush head for bots, name, points), then your line: stars earned this
    match popping in (★ Untouchable), "Bunk Bed unlocked" stitched on as a new patch, a new best with its board place.
    One button: **Play again** (Enter; readies you, and skips the wait if you're the host). After the timer, the lobby.
+   On a short landscape phone the card sits on the right and the winner stays in view on the left.
 9. **Paused** (solo only). One patch, "Paused", **Resume**.
 10. **Room closed.** One patch, one button: "You were removed" + Play; "Disconnected" + Rejoin; "Playing in another
     tab" + Play here. Each calls `rooms.join` again with the same options.
@@ -313,22 +329,23 @@ it. No glass, no gradients, no pills, no dark boxes behind HUD items.
 
 **The quilt is the star:** big patchwork squares (gingham, stripes, dots, corduroy, a floral) generated on a canvas with
 sunk seams, on a plane of ~12k vertices displaced in the vertex shader by the same ring and dent functions the physics
-uses (up to 16 rings, 5 monkey dents). The crest catches the lamp light as it rolls; the quilt's overhang ripples too.
+uses (up to 12 rings, 6 slam dents). Each ring glows in its slammer's colour with a cream core, so who made it reads at
+a glance. The crest catches the lamp light as it rolls; the quilt's overhang ripples too.
 
-**Monkeys:** built in code from smooth primitives: lanky, long curling tails (tube along an animated spring curve), heads
-about 40% of the height (not babyish), half-lidded mischievous eyes with brows, a wide mouth. Pyjamas: button-up top and
+**Monkeys:** drawn 1.4× the physics body's size so they read on a phone, built in code from smooth primitives: lanky,
+long curling tails (tube along an animated spring curve), heads about 40% of the height (not babyish), half-lidded mischievous eyes with brows, a wide mouth. Pyjamas: button-up top and
 cuffed trousers in the seat colour with the pattern, the seat symbol on the chest pocket. Animation does the acting:
 squash on landing, stretch in flight, a tuck and gritted teeth on the slam, an "O" mouth and a spin when launched, arms
 windmilling on the rim, swirly eyes then a bandage and three orbiting stars on the floor, a guilty grin frozen when the
 door opens. The leader wears the nightcap. Mama is a flat backlit silhouette in the doorway: curlers, hands on hips.
 
 **Lighting and camera:** three-quarter view from the foot of the bed, about 38° down (steeper and higher in portrait),
-framed from the bed's box by aspect so the whole bed always fits; a slight drift toward the action, a 10% push-in on the
-final two, trauma² shake on slams scaled by energy (none with reduced motion). Moon: directional light with soft shadows
-(tight shadow camera round the bed; map 0 / 1024 / 2048 by quality). Hemisphere fill (navy / plum). Lamp: warm point
-light. Door: a spot only at the round end. A blob shadow under every monkey at every quality (it shows height and
-position over the quilt; over the floor it drops away, which is the warning). ACES tone mapping, sRGB, navy fog. Bloom
-on the lamp and the door light at high quality only.
+framed from the bed's box by aspect and the HUD's measured edges so the whole bed always fits; at the round end it
+pulls back to take in the door; trauma² shake on slams scaled by energy (none with reduced motion). Moon: directional
+light with soft shadows (tight shadow camera round the bed; map 0 / 1024 / 2048 by quality). Hemisphere fill (navy / plum). Lamp: warm point
+light. Door: a spot only at the round end (high quality). A blob shadow under every monkey at every quality (it shows
+height and position over the quilt; over the floor it drops away, which is the warning). ACES tone mapping, sRGB, navy
+fog.
 
 **HUD in the world's language:** the plush strip, the felt alarm clock, the embroidered banner, stitched numerals;
 hints in white with a plum outline next to your monkey.
@@ -356,19 +373,19 @@ Synthesized Web Audio, all of it.
 
 ## Store art and the trailer
 
-- **Cover** (`thumb-1`): five monkeys mid-air over a rippling quilt, a ring rolling out from a slam, one monkey flying off
-  the edge toward the camera, mouth open; moonlight and the lamp pool; "FIVE LITTLE MONKEYS" embroidered once, big.
+- **Cover** (`thumb-1`): five monkeys mid-air over a rippling quilt, a ring rolling out from a slam under them; moonlight
+  and the lamp pool; "FIVE LITTLE MONKEYS" embroidered once, big.
 - **Action** (`thumb-2`): low angle, a crest lifting the quilt patches and flinging a monkey at the camera.
 - **Win** (`thumb-3`): the door open, the light wedge, Mama's silhouette, the winner frozen mid-bounce in the nightcap,
   bandaged monkeys on the rug.
-- **Multi** (`thumb-4`): the final duel with pillows flying in from the floor.
+- **Multi** (`thumb-4`): the final duel: two monkeys on the bed and a ring between them, the three that fell on the rug
+  with their pillows.
 - **Icon:** one monkey in striped pyjamas at the top of a bounce over a ring of quilt, on midnight; no text.
 - **Badges:** a bold symbol on a coloured felt disc each (a fist on a ring, a bandage, two monkeys, a door, a shield, a
   pillow, a down arrow, bunk beds, a wave, a bed with five stars).
-- **Trailer** (25-30 s, real play with its own sound, autoplay capture): frame 0 is a slam ring knocking two monkeys off;
-  "FOUR LITTLE MONKEYS" by 3 s; a save slam on the rim; pillows from the floor; the wild springs (alarm, big bounces, the
-  music jumps); the final two; "NO MORE MONKEYS JUMPING ON THE BED!" and the door; the last 2 s the title over the bed in
-  play.
+- **Trailer** (26 s, real play with its own sound, autoplay captures): frame 0 is a slam ring rolling through the
+  monkeys; "FOUR LITTLE MONKEYS" by 3 s; the wild springs; three left; the Water Bed's slow rolling rings; the last
+  fall, "NO MORE MONKEYS JUMPING ON THE BED!" and Mama in the door; the last 3 s the title over the bed in play.
 
 ## Originality check
 
@@ -381,23 +398,29 @@ Mama ends every round.
 ## Tech
 
 - `game/` holds `index.html`; Vite builds to `dist` (`"dir": "dist"`), `base: './'`.
-- Pure modules (no DOM, no three.js, no SDK; node-tested): `sim/beds.js` (bed shapes and physics settings),
-  `sim/waves.js` (rings, pillows, reflections, the surface height), `sim/body.js` (a monkey's bounce, steering, slam,
-  launch, falls), `sim/round.js` (falls, credit, points, round end), `sim/bots.js` (the brains), `sim/rng.js`.
-- Around them: `net.js` (room, match, presence, messages, validation), `render/` (room, quilt shader, monkeys, effects,
-  camera), `ui/` (patches, HUD, lobby, results), `audio.js`, `poster.js`, `autoplay.js` (capture only, never in
-  production).
-- Join first, then build the scene. Pause on `visibilitychange`. No per-frame allocations. Under ~150 draw calls.
+- Pure modules (no DOM, no three.js, no SDK; node-tested): `sim/config.js` (every number), `sim/beds.js` (bed shapes and
+  physics settings), `sim/waves.js` (rings, pillows, reflections, the surface height), `sim/body.js` (a monkey's bounce,
+  steering, slam, launch, falls), `sim/brain.js` (the bots), `sim/round.js` (falls, credit, points, round end),
+  `sim/arena.js` (a whole round of bots, for the simulations and posters), `sim/rng.js`; `world.js` (the bed as a page
+  runs it: its own monkey, the host's bots, predicted remote monkeys, rings from messages), `protocol.js` (every check
+  on what other pages send, and the messages this page sends), `referee.js` (the host's rulings).
+- Around them: `net.js` (room, match, bots, messages, presence through the SDK), `view.js` and `render/` (scene and
+  camera, room, quilt shader, monkeys, effects, textures), `ui.js` and `style.css` (patches, HUD, lobby, results),
+  `input.js`, `audio.js`, `save.js`, `look.js`, `poster.js`. `?autoplay=1` (local hosts only) lets the bot brain play
+  the local seat for captures; `?debug` (local only) shows the frame's draw calls.
+- Join first, then build the scene. Pause on `visibilitychange`. Static room geometry is merged by material; fairy
+  lights and blob shadows are instanced: 134 draw calls in the lobby (measured with `?debug`).
 
 ## Risks
 
 - **Rings feel random.** The crest is drawn tall and sharp with a moving highlight, the slammer tucks visibly before the
-  dive, the blob shadow shows everyone's height, and the first launches teach "Steer back!" and "SLAM to drop!". The
-  simulations check that skill wins.
+  dive, the blob shadow shows everyone's height, and the first launches teach "Steer back!" and "SPACE to drop!"
+  (touch: "Tap SLAM to drop!"). The simulations check that skill wins.
 - **Latency.** Slams are sent at the press with their impact time 0.12-0.2 s ahead; remote monkeys are predicted to the
   present; the victim judges its own launch, including rings that arrived late.
-- **Small monkeys on a phone.** The camera fits the bed by aspect; monkeys are at least 40 px tall on a 390 px wide
-  portrait screen; your ring of light and the arrow mark you.
+- **Small monkeys on a phone.** The camera fits the bed by aspect; monkeys are drawn 1.4× and are about 40 px tall on a
+  390 px wide portrait screen; your ring of light marks you. In a short landscape phone the bed is height-bound and
+  smaller (about 25 px monkeys): playable, but portrait is the better phone view.
 - **Camping** (the headboard, the top bunk). Rims are soft, pillows are low, rings reach everywhere by wild time; the
   simulations cap a camper's win rate.
 - **Bunk Bed readability.** An L-shaped bunk (the top bunk across the back, the lower one in front) instead of stacked
@@ -415,3 +438,8 @@ Mama ends every round.
   defence a skill beyond being lucky with your bounce.
 - **The lobby is practice** on the bed with a target bear, so the controls are learned before the first round.
 - **The Bunk Bed is L-shaped**, so both levels stay visible from the camera.
+- **The cause of every knock-off is on screen**: rings glow in the slammer's colour, a launched monkey trails its
+  knocker's colour, and the verse names both ("RUMBLE bonked PIP"). Credit goes to the monkey whose ring or pillow last
+  launched the faller within 3 s.
+- **Height reads at a glance**: a blob shadow under every monkey shrinks as it rises, so "high enough to be safe" is
+  visible, and the monkeys are drawn 1.4× so they read on a 390 px phone.
