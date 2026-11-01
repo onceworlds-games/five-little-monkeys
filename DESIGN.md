@@ -48,8 +48,9 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
   you hold shows on your plush in the strip and floats over your head.
 - **Bedtime twists.** From the second round of a match on, every round has a twist, the same on every page (from the
   match id): **Pillow Rain** (pillows fall from the ceiling every 2.4-3.8 s, each one a small ring), **Lights Out** (the
-  room goes dark but the rings and the monkeys' rings of light glow), **Banana Bonanza** (toys every 3-5 s, three at
-  once), **Bouncy Springs** (everyone a tier up all round), **Echo Rings** (every ring rolls back once off the frame).
+  room goes dark but the rings glow, and every plush catches a rim of its own colour while its pyjamas glow faintly),
+  **Banana Bonanza** (toys every 3-5 s, three at once), **Bouncy Springs** (everyone a tier up all round), **Echo
+  Rings** (every ring rolls back once off the frame).
 - **Last monkey jumping wins the round:** "NO MORE MONKEYS JUMPING ON THE BED!" The door bursts open, Mama's silhouette
   stands in the doorway light, and the winner freezes mid-bounce, caught.
 
