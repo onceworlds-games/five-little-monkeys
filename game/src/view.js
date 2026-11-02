@@ -49,7 +49,7 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   // A new room gets onto the graphics card before it is drawn (see prepare), so the page never stalls.
   let needWarm = false;
   let warming = 0;
-  let holdUntil = 0;
+  let priming = false;
   let q = quality;
   const monkeys = new Map();
   let base = 0;
@@ -399,26 +399,25 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     if (needWarm) {
       needWarm = false;
       if (parallel) warmAll();
-      else holdUntil = performance.now() + 1500;
+      else priming = true;
     }
-    if (warming > 0) return;
-    if (parallel || poster) {
-      stage.draw(dt);
-      return;
+    // Every frame draws (a page that skips a frame's drawing can stall the browser's frame clock): what isn't ready yet
+    // sits the frame out instead.
+    if (!poster) {
+      if (parallel) {
+        if (warming > 0) hideCompiling();
+      } else if (prepare(priming)) priming = false;
     }
-    if (!prepare(performance.now() < holdUntil)) return;
-    holdUntil = 0;
     stage.draw(dt);
     for (const o of hidden) o.visible = true;
     hidden.length = 0;
   }
 
   // Getting the room onto the graphics card. Where the browser compiles shaders in the background
-  // (KHR_parallel_shader_compile), a new room compiles all at once with compileAsync before it is drawn. Elsewhere
-  // (software graphics, some phones) shaders compile and textures upload a few at a time, in one short task per frame,
-  // so the page keeps answering its room, its input and the platform: a new room waits up to 1.5 s for all of it (the
-  // last picture stays up), then draws what is ready while the rest comes in; anything that turns up later (a monkey, a
-  // toy, a burst) sits out a frame until it's ready.
+  // (KHR_parallel_shader_compile), a new room compiles all at once with compileAsync, and until a shader is ready what
+  // uses it sits out. Elsewhere (software graphics, some phones) shaders compile and textures upload a few at a time, in
+  // one short task per frame, so the page keeps answering its room, its input and the platform; what isn't ready yet
+  // (the new room's pieces, a monkey or a toy that turns up later) sits out the frame.
   const gpu = stage.renderer;
   const parallel = !!gpu.getContext().getExtension('KHR_parallel_shader_compile') && !!gpu.compileAsync;
   function warmAll() {
@@ -488,10 +487,30 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
   }
   const late = [];
   const hidden = [];
+  const hide = (o) => {
+    if (!o.visible) return;
+    o.visible = false;
+    hidden.push(o);
+  };
+  /** While compileAsync runs: hide what draws with a shader still compiling in the background. */
+  function hideCompiling() {
+    late.length = 0;
+    scene.traverseVisible((o) => {
+      if (!(o.isMesh || o.isPoints || o.isSprite || o.isLine) || !o.material) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        const prog = m && gpu.properties.get(m).currentProgram;
+        if (prog && !prog.isReady()) {
+          late.push(o);
+          break;
+        }
+      }
+    });
+    for (const o of late) hide(o);
+  }
   /**
-   * Compile and upload what isn't ready yet, for about one frame's worth of time. `all`: everything in the scene,
-   * shown or not, and false while any of it is still missing (a new room). Otherwise what is shown, and what is still
-   * missing is hidden for this frame (shown again after the draw).
+   * Compile and upload what isn't ready yet, for about one frame's worth of time: everything in the scene, shown or not,
+   * when `all` (a new room), else what is shown. What is shown and still missing is hidden for this frame (shown again
+   * after the draw). True when nothing was missing.
    */
   function prepare(all) {
     late.length = 0;
@@ -512,16 +531,8 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     } finally {
       gpu.setRenderTarget(prev);
     }
-    let missing = false;
-    for (const o of late) {
-      if (isReady(o)) continue;
-      missing = true;
-      if (!all) {
-        o.visible = false;
-        hidden.push(o);
-      }
-    }
-    return !(all && missing);
+    for (const o of late) if (!isReady(o)) hide(o);
+    return false;
   }
 
   /** Screen position (CSS px) of a world point. */
