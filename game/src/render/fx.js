@@ -355,6 +355,8 @@ export function createFx(scene) {
   const CREAM = [1, 0.96, 0.88];
 
   const fx = {
+    /** The lit pieces (dizzy stars, pillows), for the low look's materials. */
+    lit: [dizzyStars, ...pillows.map((p) => p.mesh)],
     puff(x, y, z, n, o = {}) {
       for (let i = 0; i < n; i++) puffs.emit(x, y, z, o);
     },

@@ -787,20 +787,26 @@ async function boot() {
     sfx.fanfare();
     setMusic('box');
     if (AUTO) return;
-    const day = G.rushOver.day;
+    const over = G.rushOver;
+    const day = over.day;
     submit('rush', score);
     Promise.resolve(safe(() => ow?.leaderboards?.submit('tonight', day * 1e6 + score)))
       .catch(() => null)
       .then(() => safe(() => ow?.leaderboards?.top('tonight', { limit: 100 })))
       .then((r) => {
-        if (!r || !G.rushOver || G.rushOver.day !== day) return;
-        G.rushOver.board = (r.entries ?? [])
+        if (G.rushOver !== over) return;
+        if (!r) {
+          over.board = false;
+          return;
+        }
+        over.board = (r.entries ?? [])
           .filter((e) => Math.floor(e.score / 1e6) === day)
           .slice(0, 8)
           .map((e, i) => ({ rank: i + 1, name: e.player?.name ?? 'Someone', score: Math.round(e.score - day * 1e6), me: e.player?.id === r.me?.player?.id }));
-        G.rushKey = '';
       })
-      .catch(() => {});
+      .catch(() => {
+        if (over.board === null) over.board = false;
+      });
   }
   function resume() {
     if (!G.paused) return;

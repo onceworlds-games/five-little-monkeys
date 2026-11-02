@@ -81,6 +81,8 @@ export function startAudio() {
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   ctx.resume().catch(() => {});
   loadSamples();
+  // A tune asked for before the first tap starts now.
+  if (music.mode !== 'off') setMusic(music.mode);
 }
 
 export const audioReady = () => !!ctx && ctx.state === 'running';

@@ -199,6 +199,12 @@ export function createMonkey(opts) {
     parts.push(m);
     return m;
   };
+  // Materials (and their pictures) made for this monkey alone; the shared ones (felt, beads, lips) stay.
+  const ownMats = [];
+  const own = (m) => {
+    ownMats.push(m);
+    return m;
+  };
 
   // --- the face ---
   const H = BODIES[bodyKind]?.head ?? 1;
@@ -217,7 +223,7 @@ export function createMonkey(opts) {
     const pupil = keep(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.6, 20, 14), beadMat));
     pupil.scale.set(1, 1.1, 0.55);
     pupilG.add(pupil);
-    const glint = keep(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.17, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffffff' })));
+    const glint = keep(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.17, 10, 8), own(new THREE.MeshBasicMaterial({ color: '#ffffff' }))));
     glint.position.set(eyeR * 0.22, eyeR * 0.28, eyeR * 0.3);
     pupilG.add(glint);
     // The lid: felt that drops from the top.
@@ -319,7 +325,7 @@ export function createMonkey(opts) {
   for (const s of ['L', 'R']) {
     const c = new THREE.Group();
     attach(c, `cheek${s}`, 0.002);
-    c.add(keep(new THREE.Mesh(new THREE.CircleGeometry(0.026 * H, 20), new THREE.MeshBasicMaterial({ color: '#FF8A7A', transparent: true, opacity: 0.3, depthWrite: false }))));
+    c.add(keep(new THREE.Mesh(new THREE.CircleGeometry(0.026 * H, 20), own(new THREE.MeshBasicMaterial({ color: '#FF8A7A', transparent: true, opacity: 0.3, depthWrite: false })))));
   }
 
   // Pyjama buttons and the pocket.
@@ -334,13 +340,13 @@ export function createMonkey(opts) {
   if (!bear && look.symbol) {
     const pocket = new THREE.Group();
     attach(pocket, 'pocket', 0.003);
-    pocket.add(keep(new THREE.Mesh(new THREE.PlaneGeometry(0.075, 0.075), new THREE.MeshStandardMaterial({ map: symbolTexture(look.symbol, look.cloth, look.clothDark), roughness: 0.9, transparent: true }))));
+    pocket.add(keep(new THREE.Mesh(new THREE.PlaneGeometry(0.075, 0.075), own(new THREE.MeshStandardMaterial({ map: symbolTexture(look.symbol, look.cloth, look.clothDark), roughness: 0.9, transparent: true })))));
   }
 
   // Glasses (Mimic) and the sleep mask (Dozy).
   if (look.extra === 'glasses') {
     const glasses = new THREE.Group();
-    const frameMat = new THREE.MeshStandardMaterial({ color: '#2A2420', roughness: 0.4, metalness: 0.3 });
+    const frameMat = own(new THREE.MeshStandardMaterial({ color: '#2A2420', roughness: 0.4, metalness: 0.3 }));
     for (const s of ['L', 'R']) {
       const a = anchors[`eye${s}`];
       const ring = keep(new THREE.Mesh(new THREE.TorusGeometry(eyeR * 1.3, 0.005, 8, 28), frameMat));
@@ -388,7 +394,7 @@ export function createMonkey(opts) {
   function setHat(id) {
     if (hat) {
       hat.removeFromParent();
-      hat.traverse((o) => o.geometry?.dispose());
+      hat.userData.dispose?.();
       hat = null;
     }
     if (!id || id === 'none') return;
@@ -743,7 +749,11 @@ export function createMonkey(opts) {
     geo.dispose();
     mat.dispose();
     for (const p of parts) p.geometry?.dispose();
-    if (hat) hat.traverse((o) => o.geometry?.dispose());
+    for (const m of ownMats) {
+      m.map?.dispose();
+      m.dispose();
+    }
+    hat?.userData.dispose?.();
   }
 
   return {

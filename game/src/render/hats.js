@@ -102,6 +102,19 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
   const g = new THREE.Group();
   const cream = '#FFF1D6';
   const R = 0.238 * H;
+  // Materials made for this hat alone (the soft ones are shared): `userData.dispose()` frees them and the shapes.
+  const own = [];
+  const mine = (m) => {
+    own.push(m);
+    return m;
+  };
+  g.userData.dispose = () => {
+    g.traverse((o) => o.geometry?.dispose());
+    for (const m of own) {
+      m.map?.dispose();
+      m.dispose();
+    }
+  };
   const add = (geo, mat, x = 0, y = 0, z = 0) => {
     const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
@@ -140,7 +153,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
       break;
     }
     case 'beanie': {
-      add(shell(H, 0.11 * H, 1.07), new THREE.MeshPhysicalMaterial({ map: stripes(color, dark, 10), roughness: 0.9, sheen: 0.7, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.4) }));
+      add(shell(H, 0.11 * H, 1.07), mine(new THREE.MeshPhysicalMaterial({ map: stripes(color, dark, 10), roughness: 0.9, sheen: 0.7, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.4) })));
       add(roll(H, 0.1 * H, 0.034 * H, 1.1), soft(cream));
       add(new THREE.SphereGeometry(0.06 * H, 14, 10), soft(cream), 0, 0.055 * H, -0.01 * H);
       break;
@@ -165,10 +178,10 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       geo.setIndex(idx);
       geo.computeVertexNormals();
-      add(geo, new THREE.MeshPhysicalMaterial({ color: '#FFC94A', roughness: 0.4, metalness: 0.35, side: THREE.DoubleSide, sheen: 0.3, emissive: '#5A3A00', emissiveIntensity: 0.2 }));
+      add(geo, mine(new THREE.MeshPhysicalMaterial({ color: '#FFC94A', roughness: 0.4, metalness: 0.35, side: THREE.DoubleSide, sheen: 0.3, emissive: '#5A3A00', emissiveIntensity: 0.2 })));
       for (let i = 0; i < 3; i++) {
         const a = (i - 1) * 0.6;
-        add(new THREE.SphereGeometry(0.02 * H, 10, 8), new THREE.MeshPhysicalMaterial({ color: ['#E5483C', '#3C86F0', '#39B86E'][i], roughness: 0.2, clearcoat: 1 }), Math.sin(a) * cx * 1.12, -d + 0.035 * H, Math.cos(a) * cz * 1.12);
+        add(new THREE.SphereGeometry(0.02 * H, 10, 8), mine(new THREE.MeshPhysicalMaterial({ color: ['#E5483C', '#3C86F0', '#39B86E'][i], roughness: 0.2, clearcoat: 1 })), Math.sin(a) * cx * 1.12, -d + 0.035 * H, Math.cos(a) * cz * 1.12);
       }
       g.rotation.z = 0.14;
       break;
@@ -176,7 +189,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
     case 'propeller': {
       const tex = stripes(color, '#FFC94A', 8);
       const d = 0.1 * H;
-      add(shell(H, d, 1.06), new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.8, sheen: 0.5 }));
+      add(shell(H, d, 1.06), mine(new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.8, sheen: 0.5 })));
       const [, fz] = headAt(H, d);
       const brim = add(new THREE.CylinderGeometry(0.11 * H, 0.11 * H, 0.012, 20, 1, false, -0.9, 1.8), soft(dark));
       brim.position.set(0, -d, fz * 1.02);
@@ -215,7 +228,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
     }
     case 'party': {
       const tex = stripes(color, '#FFC94A', 6);
-      const cone = add(new THREE.ConeGeometry(0.105 * H, 0.3 * H, 24, 1, true), new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.6, side: THREE.DoubleSide }));
+      const cone = add(new THREE.ConeGeometry(0.105 * H, 0.3 * H, 24, 1, true), mine(new THREE.MeshPhysicalMaterial({ map: tex, roughness: 0.6, side: THREE.DoubleSide })));
       cone.position.set(0.02, 0.11 * H, 0);
       cone.rotation.z = -0.2;
       add(new THREE.SphereGeometry(0.035 * H, 12, 10), soft('#FFF1D6'), 0.02 + Math.sin(0.2) * 0.15 * H, 0.26 * H, 0);
@@ -234,7 +247,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
       break;
     }
     case 'headphones': {
-      const band = add(new THREE.TorusGeometry(R * 1.06, 0.016, 8, 30, Math.PI), new THREE.MeshPhysicalMaterial({ color: '#2B2B36', roughness: 0.4, clearcoat: 0.5 }));
+      const band = add(new THREE.TorusGeometry(R * 1.06, 0.016, 8, 30, Math.PI), mine(new THREE.MeshPhysicalMaterial({ color: '#2B2B36', roughness: 0.4, clearcoat: 0.5 })));
       band.position.y = -0.2 * H;
       band.scale.y = (0.215 * H) / (R * 1.06);
       for (const s of [-1, 1]) {
@@ -246,7 +259,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
       break;
     }
     case 'halo': {
-      const moon = add(new THREE.TorusGeometry(0.07 * H, 0.022 * H, 10, 30, 4.4), new THREE.MeshStandardMaterial({ color: '#FFF3B0', emissive: '#FFE27A', emissiveIntensity: 1.4, roughness: 0.4 }));
+      const moon = add(new THREE.TorusGeometry(0.07 * H, 0.022 * H, 10, 30, 4.4), mine(new THREE.MeshStandardMaterial({ color: '#FFF3B0', emissive: '#FFE27A', emissiveIntensity: 1.4, roughness: 0.4 })));
       moon.position.y = 0.12 * H;
       moon.rotation.z = 0.9;
       g.userData.spin = (t) => {
@@ -256,7 +269,7 @@ export function buildHat(id, { color = '#3C86F0', dark = '#1F4E9A', head = 1 } =
       break;
     }
     case 'bandana': {
-      add(shell(H, 0.09 * H, 1.05), new THREE.MeshPhysicalMaterial({ map: dotsTex('#C8322A', '#FFF1D6'), roughness: 0.85, sheen: 0.5 }));
+      add(shell(H, 0.09 * H, 1.05), mine(new THREE.MeshPhysicalMaterial({ map: dotsTex('#C8322A', '#FFF1D6'), roughness: 0.85, sheen: 0.5 })));
       const knot = add(new THREE.SphereGeometry(0.035 * H, 12, 10), soft('#C8322A'), 0, -0.1 * H, -R * 1.02);
       knot.scale.set(1.2, 1, 0.8);
       for (const s of [-1, 1]) {

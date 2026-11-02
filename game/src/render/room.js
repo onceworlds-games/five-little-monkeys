@@ -769,7 +769,7 @@ export function buildRoom(bed, u, quality) {
     });
     lava.add(base, glass, cap, ...lava.userData.blobs);
     lava.scale.setScalar(0.8);
-    lava.position.set(winX1 - 0.9, winY0, back + 0.25);
+    lava.position.set(winX1 - 0.6, winY0, back + 0.25);
     group.add(lava);
   }
   if (bed.id === 'bunk' || bed.id === 'poster') {
@@ -812,7 +812,8 @@ export function buildRoom(bed, u, quality) {
     put('alarm_clock_01', { scale: 4.4 }, clock);
     put('standing_picture_frame_01', { x: nsX - 0.25, y: nsTop, z: nsZ - 0.5, yaw: -0.25, scale: 4 });
     put('potted_plant_04', { x: winX0 + 0.6, y: winY0, z: back + 0.18, yaw: 0.4, scale: 5 });
-    put('carved_wooden_elephant', { x: winX1 - 0.6, y: winY0, z: back + 0.2, yaw: -0.5, scale: 6 });
+    // The water bed's lava lamp stands where the elephant would.
+    if (!lava) put('carved_wooden_elephant', { x: winX1 - 0.6, y: winY0, z: back + 0.2, yaw: -0.5, scale: 6 });
     put('Ukulele_01', { x: box.x0 - 0.9, y: fl, z: back + 0.4, yaw: 0.2, tilt: -0.2, scale: 4 });
     put('Rockingchair_01', { x: -W + 2.6, y: fl, z: box.z0 + 4.4, yaw: Math.PI / 2 + 0.5 });
     put('throw_pillows_01', { x: -W + 2.7, y: fl + 1.8, z: box.z0 + 4.3, yaw: Math.PI / 2 + 0.5, scale: 2.4 });

@@ -173,6 +173,8 @@ export async function runPoster(name) {
   // Who launched whom: trails in the launcher's colour.
   for (const e of world.entries.values()) if (e.body.lastBy) opts.lastLaunch.set(e.id, opts.colorOf(e.body.lastBy));
   view.draw(world, { ...opts, me: null, hideRing: true });
+  // The room's models and texture maps.
+  await Promise.race([view.room.ready, new Promise((r) => setTimeout(r, 8000))]).catch(() => {});
   if (name === 'icon') {
     view.room.group.children.forEach((c) => {
       if (!view.room.quilts.some((q) => q.mesh === c)) c.visible = false;

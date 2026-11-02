@@ -532,9 +532,13 @@ export function createUI(root, cb) {
           e._nm = el('div', 'nm outline', e);
           seatEls.set(s.id, e);
         }
-        e.style.setProperty('--c', s.hex);
+        if (e._hex !== s.hex) {
+          e._hex = s.hex;
+          e.style.setProperty('--c', s.hex);
+        }
         setImg(e._img, s.portrait);
-        e._nm.textContent = s.me ? 'YOU' : s.name.slice(0, 9);
+        const nm = s.me ? 'YOU' : s.name.slice(0, 9);
+        if (e._nm.textContent !== nm) e._nm.textContent = nm;
         if (e._tag.textContent !== String(s.points)) {
           const was = e._tag.textContent;
           e._tag.textContent = String(s.points);
@@ -604,7 +608,8 @@ export function createUI(root, cb) {
         void rScore.offsetWidth;
         rScore.classList.add('bump');
       }
-      rComboT.textContent = `×${d.combo || 1}`;
+      const ct = `×${d.combo || 1}`;
+      if (rComboT.textContent !== ct) rComboT.textContent = ct;
       rCombo.classList.toggle('live', d.combo > 1);
       rComboBar.style.width = `${Math.max(0, Math.min(1, d.comboLeft)) * 100}%`;
       if (rBand.children.length !== d.max) {
@@ -741,7 +746,10 @@ export function createUI(root, cb) {
       results._again.addEventListener('click', () => cb.onAgain());
       results._wait = el('div', 'wait', foot, rs.wait ?? '');
     },
-    /** d: null, or { key, score, best, tonight, newBest, board: [{ rank, name, score, me }] | null, prog, swatch, info } */
+    /**
+     * d: null, or { key, score, best, tonight, newBest, board: [{ rank, name, score, me }] | null (coming) | false (none),
+     * prog, swatch, info }
+     */
     rushOver(d) {
       rushOver.classList.toggle('hide', !d);
       if (!d) {
@@ -749,9 +757,11 @@ export function createUI(root, cb) {
         return;
       }
       if (rushOver._key === d.key) {
-        if (rushOver._board && d.board && !rushOver._boardDone) {
+        if (rushOver._board && d.board != null && !rushOver._boardDone) {
           rushOver._boardDone = true;
           rushOver._board.replaceChildren();
+          // false: the board couldn't be fetched.
+          if (!d.board) return;
           if (!d.board.length) el('div', 'wait', rushOver._board, 'No scores yet');
           for (const e of d.board) {
             const row = el('div', `br${e.me ? ' me' : ''}`, rushOver._board);

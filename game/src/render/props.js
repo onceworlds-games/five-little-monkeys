@@ -48,7 +48,11 @@ export function texture(name, { srgb = false, repeat = 1 } = {}) {
   const key = `${name}|${srgb}|${repeat}`;
   if (texCache.has(key)) return texCache.get(key);
   const url = texUrl[name];
-  const t = url ? loader.load(url) : new THREE.Texture();
+  const t = url ? loader.load(url, undefined, undefined, (err) => {
+    console.warn('texture', name, err);
+    t.userData.failed = true;
+  }) : new THREE.Texture();
+  if (!url) t.userData.failed = true;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   if (typeof repeat === 'number') t.repeat.set(repeat, repeat);
   else t.repeat.set(repeat[0], repeat[1]);
@@ -58,13 +62,13 @@ export function texture(name, { srgb = false, repeat = 1 } = {}) {
   return t;
 }
 
-/** Resolves when every texture asked for so far has loaded. */
+/** Resolves when every texture asked for so far has loaded (or failed to). */
 export function texturesReady() {
   return Promise.all(
-    [...texCache.values()].map((t) => (t.image ? Promise.resolve() : new Promise((r) => {
-      const check = () => (t.image ? r() : setTimeout(check, 30));
+    [...texCache.values()].map((t) => new Promise((r) => {
+      const check = () => (t.image || t.userData.failed ? r() : setTimeout(check, 30));
       check();
-    }))),
+    })),
   );
 }
 

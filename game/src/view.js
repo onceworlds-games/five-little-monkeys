@@ -72,6 +72,7 @@ export function createView(canvasEl, { quality = 'high', poster = false, pixelRa
     room = buildRoom(bed, u, q);
     scene.add(room.group);
     lowify(toys.group, q === 'low');
+    for (const o of fx.lit) lowify(o, q === 'low');
     needWarm = !poster;
     stage.setQuality(q, bed.box);
     stage.moon.target.position.set(0, 0, (bed.box.z0 + bed.box.z1) / 2);

@@ -403,7 +403,7 @@ export function patternSwatch(pattern, cloth, clothDark, size = 96) {
   const c = cnv(size, size);
   const g = c.getContext('2d');
   // The print at the scale it has on a monkey's belly (about half a tile).
-  g.drawImage(mask, 0, 0, 128, 128, 0, 0, size, size);
+  g.drawImage(mask.image, 0, 0, 128, 128, 0, 0, size, size);
   const img = g.getImageData(0, 0, size, size);
   const [i1, i2] = PATTERN_INKS[pattern] ?? PATTERN_INKS.plain;
   const srgb = (hex) => {

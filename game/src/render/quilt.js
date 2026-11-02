@@ -66,7 +66,6 @@ float qField(vec2 p, bool colour) {
       }
     }
     // The crater where the slam lands.
-    if (k_dummy_never(tau)) h += 0.0;
     if (tau < 0.22) {
       float d0 = distance(p, a.xy);
       float fall = clamp(1.0 - d0 / 0.9, 0.0, 1.0);
@@ -82,7 +81,7 @@ float qField(vec2 p, bool colour) {
   if (uSwell > 0.0) h += uSwell * sin(0.8 * uTime + 0.55 * p.x) * cos(0.6 * uTime + 0.45 * p.y);
   return h;
 }
-`.replace('    if (k_dummy_never(tau)) h += 0.0;\n', '');
+`;
 
 /**
  * A quilt material sharing one set of ring uniforms. Cotton with a sheen; each patch puffs up between its seams (in the
