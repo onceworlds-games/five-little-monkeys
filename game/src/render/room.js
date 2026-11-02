@@ -629,10 +629,7 @@ export function buildRoom(bed, u, quality) {
       vg.translate((x0 + x1) / 2, y - 0.3, (z0 + z1) / 2);
       bedParts.add(lace, vg);
     }
-    for (let k = 1; k < 6; k++) {
-      const z = a.z + ((c.z - a.z) * k) / 6;
-      bedParts.box(wood, a.x, b2.x, y + 0.05, y + 0.1, z - 0.04, z + 0.04);
-    }
+    // No slats across the top: the camera looks down through the canopy, and the frame and lace say enough.
   }
   const pillowMat = mat(new THREE.MeshPhysicalMaterial({ color: '#F6EEE0', normalMap: texture('linen_nor'), roughness: 0.9, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color('#ffffff') }));
   pillowMat.userData.worldUV = 1 / 1.5;
