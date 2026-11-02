@@ -62,12 +62,6 @@ export function bedOpen(s, id) {
 /** What the player has to unlock things with: { level, stars, boxed }. */
 export const ownership = (s) => ({ level: levelOf(s.progress.xp).level, stars: starCount(s), boxed: s.progress.boxed });
 
-/** Does this save own wardrobe item `key` (slot:id)? */
-export const ownsKey = (s, key) => {
-  const item = WARDROBE.find((i) => i.key === key);
-  return !!item && owns(item, ownership(s));
-};
-
 /** The look to wear: the saved one, with anything no longer owned put back to the slot's first item. */
 export function wornLook(s) {
   const own = ownership(s);

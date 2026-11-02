@@ -2,7 +2,7 @@
 // same patch at the same moment. Who grabs a toy is decided by its page (the host for bots, the room's host rules ties).
 import { TOYS, RAIN } from './config.js';
 import { createRng } from './rng.js';
-import { edgeDistance, inside } from './beds.js';
+import { edgeDistance } from './beds.js';
 
 const KINDS = ['mega', 'shield', 'spring'];
 
@@ -74,6 +74,3 @@ export function canGrab(b, toy, t) {
   if (b.mode === 'dive' || b.mode === 'falling' || b.mode === 'out') return false;
   return Math.hypot(b.x - toy.x, b.z - toy.z) <= TOYS.grab && b.y - b.lastTop <= TOYS.grabH;
 }
-
-/** Is a toy's spot still on the bed (a sanity check for pages that read a schedule). */
-export const toyOnBed = (bed, toy) => !!bed.surfaces[toy.si] && inside(bed.surfaces[toy.si], toy.x, toy.z, 0);

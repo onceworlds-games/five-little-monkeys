@@ -42,7 +42,6 @@ export function heartTexture() {
   g.bezierCurveTo(32, 18, 36, 10, 44, 10);
   g.bezierCurveTo(60, 10, 60, 36, 32, 56);
   g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.0)';
   return tex(c);
 }
 

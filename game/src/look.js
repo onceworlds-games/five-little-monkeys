@@ -41,18 +41,6 @@ export function threadHex(thread, t = 0) {
 export const BOT_NAMES = CAST.map((c) => c.name);
 export const castByName = (name) => CAST.find((c) => c.name === name) ?? null;
 
-/** Pyjama patterns a player can wear, and the stars that unlock them. */
-export const PATTERNS = [
-  { id: 'plain', name: 'Plain', stars: 0 },
-  { id: 'stripes', name: 'Stripes', stars: 2 },
-  { id: 'dots', name: 'Polka', stars: 4 },
-  { id: 'checks', name: 'Checks', stars: 6 },
-  { id: 'moons', name: 'Moons', stars: 9 },
-  { id: 'bolts', name: 'Lightning', stars: 12 },
-  { id: 'gold', name: 'Gold Stars', stars: 15 },
-];
-export const ALL_PATTERNS = ['plain', 'stripes', 'dots', 'checks', 'moons', 'bolts', 'gold', 'zigzag', 'stars'];
-
 /** Each bed's room: wall, floor and quilt fabrics. */
 export const ROOMS = {
   kid: { wall: '#1E2A4A', wall2: '#243257', floor: '#6B4A33', rug: ['#D9473B', '#FFB24A', '#2E4A7A'], quilt: ['#D9473B', '#F2B544', '#3F6FB0', '#E9DFC8', '#4D8F6A', '#C46A3A'], frame: '#8A5A3B', sheet: '#E8E2D4' },
