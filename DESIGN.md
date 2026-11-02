@@ -445,9 +445,9 @@ layered with synthesized Web Audio.
 - **Icon:** one monkey in striped pyjamas and a nightcap at the top of a bounce over a ring of quilt; no text.
 - **Badges:** a bold symbol on a felt disc each (a fist on a ring, a bandage, two monkeys, a door, a shield, a pillow, a
   down arrow, bunk beds, a wave, a bed with five stars, a gift box with a moon, a ringing alarm clock with a bolt).
-- **Trailer** (real autoplay captures on the GPU with the game's own sound): frame 0 is a slam ring rolling through the
-  monkeys; the first knock-off and its verse by 3 s; toys, a twist, the wild springs; the last fall, "NO MORE MONKEYS
-  JUMPING ON THE BED!" and Mama in the door; the last 2-3 s the felt logo over the bed in play.
+- **Trailer** (25 s, real autoplay captures on the GPU with the game's own sound): JUMP! and the verse on the Kid's
+  Bed, a ring knocking the first monkey off (FOUR LITTLE MONKEYS), Lights Out on the King Bed, a Rush combo on the
+  Four-Poster, the last fall with Mama in the door, then the felt logo over the bed in play.
 
 ## Originality check
 
