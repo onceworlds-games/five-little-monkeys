@@ -534,7 +534,7 @@ export function createUI(root, cb) {
         }
         if (e._hex !== s.hex) {
           e._hex = s.hex;
-          e.style.setProperty('--c', s.hex);
+          e._disc.style.setProperty('--c', s.hex);
         }
         setImg(e._img, s.portrait);
         const nm = s.me ? 'YOU' : s.name.slice(0, 9);
