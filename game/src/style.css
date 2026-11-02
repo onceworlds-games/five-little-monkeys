@@ -359,7 +359,9 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 
 /* ---- Results and the Rush's end ---- */
 #results, #rushover { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; }
-#results .card, #rushover .card { width: min(94vw, 880px); max-height: calc(100% - 8px); overflow-y: auto; padding: 20px 26px 18px; pointer-events: auto; touch-action: pan-y; animation: cardin 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+#results .card, #rushover .card { width: min(94vw, 880px); max-height: calc(100% - 8px); display: flex; flex-direction: column; overflow: hidden; padding: 20px 26px 18px; pointer-events: auto; animation: cardin 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+/* Only the body scrolls: the buttons stay in view at the card's bottom however long it gets. */
+#results .body, #rushover .body { flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; scrollbar-width: thin; }
 @keyframes cardin { from { transform: translateY(30px) scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }
 /* On a wide screen the card sits on the right, so the winner dances in view on the left. */
 @media (min-width: 1000px) and (min-aspect-ratio: 4/3) {
@@ -392,8 +394,11 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 .prog.levelled .lvbadge { box-shadow: 0 0 0 3px var(--plum), 0 4px 0 3px #a86410, 0 0 22px 6px rgba(255, 210, 74, 0.7); }
 .lvbar { flex: 1; }
 .lvbar .xpbar { height: 18px; border-radius: 9px; }
-.prog .lines { margin: 10px 0 6px; font-size: 17px; }
-.prog .ln { display: flex; justify-content: space-between; padding: 2px 4px; border-bottom: 1px dashed rgba(255, 241, 214, 0.18); animation: linein 0.3s ease-out; }
+.prog .lines { margin: 10px 0 6px; font-size: 17px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+.prog .ln { display: flex; justify-content: space-between; gap: 6px; padding: 2px 4px; border-bottom: 1px dashed rgba(255, 241, 214, 0.18); animation: linein 0.3s ease-out; white-space: nowrap; }
+.prog .ln.wide { grid-column: 1 / -1; }
+.prog .ln span { overflow: hidden; text-overflow: ellipsis; }
+.gifts { margin-top: 10px; }
 .prog .ln b { color: #ffd24a; }
 @keyframes linein { from { transform: translateX(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
 .goalsmini { margin-top: 8px; }
@@ -415,7 +420,7 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 .gift.box small { color: #ff9a8a; }
 .gift b { font-size: 22px; }
 @keyframes giftin { from { transform: scale(0.4) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
-.foot { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 16px; }
+.foot { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 16px; }
 #rushover .foot { flex-direction: row; justify-content: center; gap: 12px; }
 .foot .again { font-family: var(--slab); font-size: 26px; height: 62px; padding: 0 36px; }
 .foot .wait { font-size: 17px; opacity: 0.85; }

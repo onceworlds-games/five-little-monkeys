@@ -226,8 +226,9 @@ export function createUI(root, cb) {
   /**
    * The progress block for the results and the Rush: XP lines counting into the level bar, level-ups, the nightly goals
    * ticking, the streak, then what was unlocked and the Bedtime Box. `prog`: from bankProgress; `swatch(item)`: a picture.
+   * `giftsTo`: where the unlocks go (the card's other column, so the card stays short).
    */
-  function progressBlock(parent, prog, swatch, delay = 600) {
+  function progressBlock(parent, prog, swatch, delay = 600, giftsTo = null) {
     const box = el('div', 'prog', parent);
     const lv = el('div', 'lvrow', box);
     const lvB = el('div', 'lvbadge slab', lv, String(prog.before.level));
@@ -250,7 +251,7 @@ export function createUI(root, cb) {
     const step = prog.lines.length > 8 ? 170 : 240;
     prog.lines.forEach((ln, i) => {
       later(at, () => {
-        const row = el('div', 'ln', lines);
+        const row = el('div', `ln${ln.what.length > 17 ? ' wide' : ''}`, lines);
         el('span', '', row, ln.what);
         el('b', '', row, `+${fmt(ln.xp)}`);
         sfx.tick(i);
@@ -310,7 +311,7 @@ export function createUI(root, cb) {
     const gifts = [...prog.unlocks.map((it) => ({ it, what: it.what ?? 'NEW' })), ...(prog.box ? [{ it: prog.box, what: 'BEDTIME BOX', box: true }] : [])];
     gifts.forEach((g, i) => {
       later(at + i * 450, () => {
-        const card = el('div', `gift${g.box ? ' box' : ''}`, after);
+        const card = el('div', `gift${g.box ? ' box' : ''}`, giftsTo ?? after);
         const sw = el('span', 'sw', card);
         const src = swatch?.(g.it);
         if (src && src.startsWith('#')) {
@@ -707,8 +708,9 @@ export function createUI(root, cb) {
       results._key = rs.key;
       results.replaceChildren();
       const card = el('div', 'card felt f-navy', results);
-      el('h2', 'slab', card, rs.title);
-      const cols = el('div', `cols${rs.prog ? '' : ' one'}`, card);
+      const body = el('div', 'body', card);
+      el('h2', 'slab', body, rs.title);
+      const cols = el('div', `cols${rs.prog ? '' : ' one'}`, body);
       const left = el('div', 'standings', cols);
       results._imgs = [];
       for (const row of rs.rows) {
@@ -732,7 +734,7 @@ export function createUI(root, cb) {
           ld.appendChild(s);
         });
       }
-      if (rs.prog) progressBlock(el('div', 'progcol', cols), rs.prog, rs.swatch, 700);
+      if (rs.prog) progressBlock(el('div', 'progcol', cols), rs.prog, rs.swatch, 700, el('div', 'gifts', left));
       const foot = el('div', 'foot', card);
       results._again = el('button', 'pill felt f-amber again', foot, rs.again ?? 'PLAY AGAIN');
       results._again.classList.toggle('hide', !rs.again);
@@ -764,10 +766,11 @@ export function createUI(root, cb) {
       rushOver._boardDone = false;
       rushOver.replaceChildren();
       const card = el('div', 'card felt f-navy', rushOver);
-      const head = el('div', 'rhead', card);
+      const body = el('div', 'body', card);
+      const head = el('div', 'rhead', body);
       head.appendChild(icon('moon', 'ic'));
       el('span', '', head, `TONIGHT'S RUSH · ${d.info}`);
-      const big = el('div', 'bigscore slab', card, '0');
+      const big = el('div', 'bigscore slab', body, '0');
       let shown = 0;
       const tick = () => {
         shown = Math.min(d.score, shown + Math.max(7, Math.ceil(d.score / 40)));
@@ -775,20 +778,20 @@ export function createUI(root, cb) {
         if (shown < d.score) later(28, tick);
         else if (d.newBest) {
           big.classList.add('best');
-          el('div', 'newbest ribbon slab gold unroll', card, 'NEW BEST!');
+          big.after(el('div', 'newbest ribbon slab gold unroll', null, 'NEW BEST!'));
           sfx.win();
         }
       };
       later(350, tick);
-      const sub = el('div', 'bests', card);
+      const sub = el('div', 'bests', body);
       el('span', '', sub, `TONIGHT ${fmt(d.tonight)}`);
       el('span', '', sub, `BEST ${fmt(d.best)}`);
-      const cols = el('div', 'cols', card);
+      const cols = el('div', 'cols', body);
       const boardCol = el('div', 'boardcol', cols);
       el('div', 'bh', boardCol, 'TONIGHT');
       rushOver._board = el('div', 'board', boardCol);
       el('div', 'wait', rushOver._board, d.board === undefined ? '' : '…');
-      if (d.prog) progressBlock(el('div', 'progcol', cols), d.prog, d.swatch, 900);
+      if (d.prog) progressBlock(el('div', 'progcol', cols), d.prog, d.swatch, 900, el('div', 'gifts', boardCol));
       const foot = el('div', 'foot', card);
       const again = el('button', 'pill felt f-amber again', foot, 'AGAIN');
       again.addEventListener('click', () => cb.onRushAgain());
