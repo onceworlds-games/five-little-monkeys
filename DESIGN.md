@@ -477,11 +477,9 @@ Mama ends every round.
   grain) and 2048 shadows; medium smaller; low no post, no shadows and Lambert materials (`render/lowmat.js`). A computer
   drawing WebGL in software (SwiftShader, llvmpipe) always gets low, at 0.6 pixel ratio, with no portraits and no room
   reflections; the game makes its own WebGL context first and reads what draws it, so the look is picked before anything
-  is built. A new room gets onto the graphics card before it is drawn (the last picture stays up): where the browser
-  compiles shaders in the background, all at once with `compileAsync`; elsewhere a few shaders and textures per frame,
-  so no task holds the page for long and it keeps answering its room and the platform. There a new room waits up to
-  1.5 s for all of it, then draws what is ready while the rest comes in, and anything that turns up later (a monkey, a
-  toy) sits out a frame until it is ready.
+  is built. Every frame draws; what isn't on the graphics card yet sits the frame out. Where the browser compiles
+  shaders in the background, a new room compiles all at once with `compileAsync`; elsewhere a few shaders and textures
+  go up per frame, so no task holds the page for long and it keeps answering its room and the platform.
 - Join first, then build the scene. Pause on `visibilitychange`. Static room geometry is merged by material; fairy
   lights and blob shadows are instanced: 134 draw calls in the lobby (measured with `?debug`).
 
