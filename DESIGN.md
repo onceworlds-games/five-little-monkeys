@@ -62,7 +62,7 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
 | ~2 s | **Play** (tap, click, Space, Enter) starts the sound. The camera glides to the game view; the bots sit cross-legged on the rug at the foot of the bed with an **Invite** patch at the empty end; your monkey drops onto the quilt and starts bouncing. **Lobby = practice:** Biscuit, a stuffed bear, bounces passively on the bed as a target (each page has its own Biscuit). Top band: the bed patches (only the Kid's Bed open). Bottom: the platform's Ready strip. | "WASD to steer" (touch: "Stick to steer"), over your monkey's name tag, until you steer. Keys or touch is decided by the last input used (before any input: a touch screen without a mouse shows touch) |
 | ~4 s | You steer around. | "SPACE to slam" (phone: "Tap SLAM") |
 | ~6 s | You slam: whump, the quilt folds into a ring, Biscuit is launched and tumbles off the edge with a bonk, then pops back onto the bed. | "Knock it off!" appears the moment your first ring rolls, if Biscuit is still on |
-| ~10 s | You tap Ready. **Countdown** (the game's own, timed to the room): stitched numerals 3, 2, 1 with toy-piano notes, while the four bots hop up onto their spots. "JUMP!" | none |
+| ~10 s | You tap Ready. **Countdown** (the game's own, timed to the room): its last ten seconds in big stitched numerals with toy-piano notes, while the four bots hop up onto their spots. "JUMP!" | none |
 | ~14 s | **Round 1.** The verse banner unrolls from the headboard: "FIVE LITTLE MONKEYS", the melody's first line. Slams are locked for the first 2.5 s (bots hold theirs for 5 s in a player's first ever round). | "Stay on. Knock them off." under the banner, round 1 only |
 | ~16-25 s | First slams. A ring rolls toward you; if it catches you low you fly up spinning. | first two launches: "Steer back!". First two launches toward an edge: "SPACE to drop!" (touch: "Tap SLAM to drop!") |
 | ~20-35 s | First fall (usually a bot): slide whistle, bonk, bandage, stars. Banner "FOUR LITTLE MONKEYS", under it "RUMBLE bonked PIP" in their colours ("pillowed" for a pillow, "fell off" with no credit, "dozed off" for a player who went away); a "+1" flies from the faller to Rumble's plush on the strip. The faller's plush tips over. The cause stays on screen: the knocker's ring is drawn in its colour, and a launched monkey trails its knocker's colour. | none |
@@ -321,7 +321,7 @@ everything lays out again on `ow.on('reserved')` and resize.
    foot of the bed, with an **Invite** patch beside them (`ow.ui.showInvite()`). Top band: five bed patches (picture of the bed, its name, its 3 stars, a stitched padlock when
    locked; the chosen one raised), and the rounds patch (3 / 5); what you wear is picked in the wardrobe. Only the
    host's patches respond; the others show the host's choice. Bottom: the platform's Ready strip.
-4. **Countdown.** Stitched numerals 3, 2, 1 drop onto the quilt with a puff; "JUMP!".
+4. **Countdown.** Its last ten seconds in stitched numerals that drop onto the quilt with a puff; "JUMP!".
 5. **Play.** The bed, nearly edge to edge. Top centre: **the monkey strip**, a stitched band with five plush heads in
    seat colours, each with its symbol, the player's name under it (cut to 8 letters) and the match points on a felt tag;
    a fallen monkey's plush tips over with a bandage. To its right, **the alarm clock**: its hand sweeps to a red WILD
