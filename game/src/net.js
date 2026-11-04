@@ -15,7 +15,7 @@ export const SETTINGS = [
   { id: 'rounds', label: 'Rounds', options: [3, 5], default: 3 },
 ];
 
-export const JOIN = { maxPlayers: 5, minPlayers: 1, lobby: 'bar', ownCountdown: true, settings: SETTINGS };
+export const JOIN = { maxPlayers: 5, minPlayers: 1, lobby: 'bar', settings: SETTINGS };
 
 const FALL_SCHEMA = t.object({
   id: t.string(40, ID_RE),
@@ -51,7 +51,8 @@ export function createNet(ow, room, hooks) {
     rounds: 'rounds',
     introSeconds: 0,
     roundEndSeconds: 5.5,
-    resultsSeconds: room.kind === 'public' ? 20 : room.kind === 'solo' ? 25 : 0,
+    // A moment for every page to bank the results; then back to the lobby, the results still up, with the strip for the next one.
+    resultsSeconds: 1,
     admit: 'round',
     data: DATA,
     tick: 100,

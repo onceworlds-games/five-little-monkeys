@@ -29,8 +29,6 @@ const POSTER = params.get('poster');
 const AUTO = LOCAL && params.get('autoplay') === '1';
 // ?debug (local only): the frame's draw calls on <body data-calls>, for measuring.
 const DEBUG = LOCAL && params.has('debug');
-// ?logoonly=1 (local only): the title with nothing but the name over the bed, for the trailer's last shot.
-if (LOCAL && params.get('logoonly') === '1') document.documentElement.classList.add('logoonly');
 const ow = window.onceworlds ?? null;
 
 const BADGES = ['first-slam', 'bumped-head', 'double-bounce', 'no-more-monkeys', 'untouchable', 'pillow-fight', 'saved-it', 'bunk-boss', 'making-waves', 'five-beds', 'bedtime-box', 'rush-hour'];
@@ -146,12 +144,11 @@ async function boot() {
     net: null,
     match: null,
     myId: 'me',
-    screen: AUTO ? 'game' : 'title',
+    screen: 'game',
     mode: '',
     rid: '',
     world: createWorld(save.bed),
     localT: 0,
-    attractEnd: 0,
     bases: new Map(),
     off: 0,
     offRid: '',
@@ -179,9 +176,9 @@ async function boot() {
     hint: null,
     wildSeen: 0,
     countN: null,
-    jumpUntil: 0,
-    lastResultsId: '',
-    wantReady: false,
+    wasReady: false,
+    sawMatch: -1,
+    resultsClosed: -1,
     door: 0,
     roundEndAt: 0,
     closed: null,
@@ -202,7 +199,6 @@ async function boot() {
   let myLook = wornLook(save);
 
   const ui = createUI(uiRoot, {
-    onPlay: () => play(),
     onBed: (id) => pickBed(id),
     onRounds: () => pickRounds(),
     onWardrobe: () => openWardrobe(),
@@ -212,7 +208,7 @@ async function boot() {
     onRushAgain: () => startRush(),
     onRushQuit: () => quitRush(),
     onInvite: () => safe(() => ow?.ui?.showInvite()),
-    onAgain: () => playAgain(),
+    onCloseResults: () => closeResults(),
     onResume: () => resume(),
     onRejoin: () => rejoin(),
   });
@@ -337,16 +333,6 @@ async function boot() {
     names.set('biscuit', 'Biscuit');
     return { looks, names };
   }
-  const ATTRACT = [...CAST.map((c) => ({ ...c })), { name: 'Pip', kind: 'pro', color: 4, extra: '', look: { pj: 'checks', hat: 'crown', thread: 'gold', trail: 'stars', dance: 'spin' } }];
-  function attractLooks() {
-    const looks = new Map();
-    const names = new Map();
-    ATTRACT.forEach((c, i) => {
-      looks.set(`a${i}`, castLook(c));
-      names.set(`a${i}`, c.name);
-    });
-    return { looks, names };
-  }
   function rushLooks() {
     const looks = new Map();
     const names = new Map();
@@ -362,9 +348,8 @@ async function boot() {
   }
   let lookCache = { looks: new Map(), names: new Map() };
   function refreshLooks() {
-    if (G.mode === 'attract' || G.mode === 'dress') lookCache = attractLooks();
-    else if (G.mode === 'rush') lookCache = rushLooks();
-    else if (G.mode === 'lobby' || G.mode === 'offline') lookCache = lobbyLooks();
+    if (G.mode === 'rush') lookCache = rushLooks();
+    else if (G.mode === 'lobby' || G.mode === 'offline' || G.mode === 'dress') lookCache = lobbyLooks();
     else lookCache = seatLooks();
   }
   const hexOf = (id) => lookCache.looks.get(id)?.hex ?? '#FFF1D6';
@@ -376,19 +361,36 @@ async function boot() {
 
   const validBed = (id) => (BED_IDS.includes(id) ? id : 'kid');
   function wanted() {
-    // A player in a running match (a reload, or readied from the platform's strip) goes straight back to the bed.
-    if (G.screen === 'title' && G.match && G.match.phase !== 'lobby' && G.match.me && !G.match.spectating) {
-      G.screen = 'game';
-      safe(() => G.room?.hideLobby?.(false));
-    }
-    if (G.screen === 'title') return { mode: 'attract', bed: validBed(save.bed) };
     if (G.screen === 'wardrobe') return { mode: 'dress', bed: validBed(save.bed) };
     if (!G.room || !G.match) return { mode: 'offline', bed: validBed(save.bed) };
     const ph = G.match.phase;
+    const n = G.room.match?.n ?? 0;
+    if (ph !== 'lobby' && ph !== 'countdown') G.sawMatch = n;
+    // The last match's results stay up over the lobby until the player closes them or readies.
+    if (ph === 'results' || (ph === 'lobby' && G.match.results && G.sawMatch === n && G.resultsClosed !== n)) return { mode: 'results', bed: validBed(G.match.settings?.bed), rid: `R${n}` };
     if (ph === 'lobby' || ph === 'countdown') return { mode: 'lobby', bed: validBed(G.room.settings?.bed) };
-    const bed = validBed(G.match.settings?.bed);
-    if (ph === 'results') return { mode: 'results', bed, rid: `R${G.room.match?.id ?? ''}` };
-    return { mode: 'round', bed, rid: G.match.roundId };
+    return { mode: 'round', bed: validBed(G.match.settings?.bed), rid: G.match.roundId };
+  }
+
+  /** Readying, or a match starting with this player in it, closes whatever is open: the player goes straight to the bed. */
+  function closeOnReady() {
+    const room = G.room;
+    if (!room || !G.match) return;
+    const n = room.match?.n ?? 0;
+    const ready = !!room.players?.get?.(G.myId)?.ready;
+    const inMatch = G.match.phase !== 'lobby' && (room.match?.participants ?? []).includes(G.myId);
+    if ((ready && !G.wasReady) || inMatch) {
+      if (G.rush) quitRush();
+      if (G.screen === 'wardrobe') G.screen = 'game';
+      if (G.match.phase === 'lobby') G.resultsClosed = n;
+      startAudio();
+    }
+    G.wasReady = ready;
+  }
+  function closeResults() {
+    if (G.mode !== 'results') return;
+    sfx.tap();
+    G.resultsClosed = G.room?.match?.n ?? 0;
   }
 
   function solo() {
@@ -399,7 +401,7 @@ async function boot() {
 
   function syncMode() {
     const w = wanted();
-    const changed = w.mode !== G.mode || (w.rid ?? '') !== G.rid || (w.mode === 'lobby' && w.bed !== G.world.bed.id) || ((w.mode === 'attract' || w.mode === 'offline') && w.bed !== G.world.bed.id);
+    const changed = w.mode !== G.mode || (w.rid ?? '') !== G.rid || ((w.mode === 'lobby' || w.mode === 'offline') && w.bed !== G.world.bed.id);
     if (!changed) return;
     const prev = G.mode;
     G.mode = w.mode;
@@ -408,15 +410,7 @@ async function boot() {
     G.lastLaunch.clear();
     G.pillowsDue.length = 0;
     G.door = 0;
-    G.jumpUntil = 0;
-    if (w.mode === 'attract') {
-      G.localT = 0;
-      G.attractEnd = 0;
-      G.world.reset(w.bed, 0, { lobby: false, seed: `attract${Math.random()}` });
-      G.world.grace = 1.5;
-      G.world.botGrace = 1.5;
-      ATTRACT.forEach((c, i) => G.world.add(`a${i}`, { role: 'bot', index: i, brain: { kind: c.kind, skill: 0.55 + (i % 3) * 0.12, seed: `attract${Math.random()}` } }));
-    } else if (w.mode === 'dress') {
+    if (w.mode === 'dress') {
       G.localT = 0;
       G.world.reset(w.bed, 0, { lobby: true });
       G.dressRing = 0;
@@ -445,10 +439,9 @@ async function boot() {
         G.offRid = G.rid;
       }
       populateRound();
-      G.jumpUntil = performance.now() + 900;
       if (!G.world.get(G.myId)) G.hint = null;
       setMusic('play', 116);
-      if (G.match.round === 1 && G.screen === 'game') {
+      if (G.match.round === 1) {
         G.stats = newStats();
         G.roundsWon = [];
         G.myKnocks = [];
@@ -626,23 +619,17 @@ async function boot() {
     if (!bedOpen(save, id) && !AUTO) return;
     sfx.tap();
     safe(() => G.room.setSetting('bed', id));
-    clearReadyAfterChange();
   }
   function pickRounds() {
     if (!G.room || !G.match || G.mode !== 'lobby' || !G.room.isHost) return;
     sfx.tap();
     const cur = Number(G.room.settings?.rounds) === 5 ? 5 : 3;
     safe(() => G.room.setSetting('rounds', cur === 5 ? 3 : 5));
-    clearReadyAfterChange();
-  }
-  function clearReadyAfterChange() {
-    const others = [...G.room.players.values()].some((p) => p.id !== G.myId && p.ready);
-    if (others && G.room.kind !== 'public') safe(() => G.room.clearReady());
   }
   // ---- The wardrobe ----
 
   function openWardrobe() {
-    if (G.screen !== 'title') return;
+    if (!canLeaveBed()) return;
     startAudio();
     sfx.tap();
     G.screen = 'wardrobe';
@@ -651,7 +638,11 @@ async function boot() {
   function closeWardrobe() {
     if (G.screen !== 'wardrobe') return;
     sfx.tap();
-    G.screen = 'title';
+    G.screen = 'game';
+  }
+  /** The wardrobe and the Rush open from the lobby, not once a countdown has begun. */
+  function canLeaveBed() {
+    return G.screen === 'game' && !G.rush && (G.mode === '' || G.mode === 'lobby' || G.mode === 'offline') && (G.match?.phase ?? 'lobby') === 'lobby';
   }
   function wear(slot, id) {
     if (id === null) {
@@ -683,20 +674,6 @@ async function boot() {
 
   // ---- Screens ----
 
-  function play() {
-    if (G.screen !== 'title') return;
-    startAudio();
-    sfx.tap();
-    G.screen = 'game';
-    safe(() => G.room?.hideLobby?.(false));
-    setMusic('box');
-  }
-  function playAgain() {
-    if (G.mode !== 'results') return;
-    sfx.tap();
-    G.wantReady = true;
-    if (G.match?.isHost) safe(() => G.match.skip());
-  }
   function pauseNow() {
     if (G.paused || !(G.mode === 'rush' || (G.mode === 'round' && solo()))) return;
     if (G.mode === 'rush' && G.rush?.over) return;
@@ -707,7 +684,7 @@ async function boot() {
   // ---- Tonight's Rush ----
 
   function startRush() {
-    if (G.screen !== 'title' && !(G.mode === 'rush' && G.rush?.over)) return;
+    if (!canLeaveBed() && !(G.mode === 'rush' && G.rush?.over)) return;
     startAudio();
     sfx.tap();
     G.rush = createRushRun(today(), G.myId);
@@ -726,7 +703,6 @@ async function boot() {
     G.pillowsDue.length = 0;
     view.setBed(G.rush.world.bed);
     refreshLooks();
-    safe(() => G.room?.hideLobby?.(true));
     setMusic('play', 120);
     const info = G.rush.info;
     ui.banner("TONIGHT'S RUSH", [{ text: info.twist ? `${bedById(info.bed).name} · ${TWIST_NAMES[info.twist]}` : bedById(info.bed).name }], 2.8, info.twist ? 'twist' : '');
@@ -739,7 +715,7 @@ async function boot() {
     G.rushOver = null;
     G.paused = false;
     G.mode = '';
-    G.screen = 'title';
+    G.screen = 'game';
     ui.rushOver(null);
     ui.rushHud(null);
     ui.clearTimers();
@@ -822,26 +798,12 @@ async function boot() {
 
   addEventListener('keydown', (e) => {
     if (!e.isTrusted || e.repeat) return;
-    if (G.screen === 'game') startAudio();
-    if (e.code === 'Escape' && G.screen === 'wardrobe') {
-      closeWardrobe();
-      return;
-    }
-    const go = e.code === 'Space' || e.code === 'Enter';
-    if (!go) return;
-    if (G.screen === 'title') {
-      e.preventDefault();
-      input.clear();
-      play();
-    } else if (G.screen === 'wardrobe' && e.code === 'Enter') closeWardrobe();
-    else if (G.mode === 'results' && e.code === 'Enter') playAgain();
-    else if (G.mode === 'rush' && G.rush?.over && e.code === 'Enter' && performance.now() - (G.rushOver?.at ?? 0) > 1200) startRush();
-    else if (G.paused) resume();
+    startAudio();
+    if (e.code === 'Escape' && G.screen === 'wardrobe') closeWardrobe();
+    else if (e.code === 'Space' && G.paused) resume();
   });
   // Any tap in the game wakes the sound (iOS stays silent until a tap in the frame).
-  addEventListener('pointerdown', () => {
-    if (G.screen === 'game') startAudio();
-  }, { passive: true });
+  addEventListener('pointerdown', () => startAudio(), { passive: true });
 
   // ---- Badges, boards ----
 
@@ -869,7 +831,7 @@ async function boot() {
       if (it) prog.unlocks.push(it);
     }
     if (ladder.unlocked) prog.unlocks.push({ slot: 'bed', id: ladder.unlocked, name: bedById(ladder.unlocked).name, what: 'NEW BED' });
-    G.resultsData = { rid: `R${G.room?.match?.id ?? ''}`, place: mine.place, bed, prog, stars: store.stars[bed] ?? [0, 0, 0], fresh: ladder.stars, at: performance.now() };
+    G.resultsData = { rid: `R${G.room?.match?.n ?? 0}`, place: mine.place, bed, prog, stars: store.stars[bed] ?? [0, 0, 0], fresh: ladder.stars, at: performance.now() };
     if (mine.place === 1) sfx.win();
     afterBank(prog);
     if (mine.place === 1) {
@@ -986,7 +948,7 @@ async function boot() {
           if (ev.shaken && mine && audible) sfx.shake();
           break;
         case 'overEdge':
-          if (audible && (mine || G.mode !== 'attract')) sfx.fall();
+          if (audible) sfx.fall();
           break;
         case 'fall': {
           view.fx.stars(ev.x, W.bed.floor + 0.8, ev.z, 6);
@@ -999,19 +961,19 @@ async function boot() {
           }
           if (mine || ev.by === G.myId) hitStop(mine ? 140 : 120, 1);
           // The last fall of a round: slow motion, the camera on the faller.
-          if (round || G.mode === 'attract') {
+          if (round) {
             let alive = 0;
             for (const e of W.entries.values()) if (!e.body.out) alive++;
             if (alive <= 1) {
               G.focus = { id: ev.id, until: performance.now() + 1500 };
-              if (round && solo() && G.match?.isHost && !settings.reduced) G.slowUntil = performance.now() + 1300;
+              if (solo() && G.match?.isHost && !settings.reduced) G.slowUntil = performance.now() + 1300;
             }
           }
-          if (ev.id === 'biscuit' && G.mode !== 'attract') G.hintsShown.add('knock');
+          if (ev.id === 'biscuit') G.hintsShown.add('knock');
           break;
         }
         case 'land':
-          if (audible && G.mode !== 'attract') {
+          if (audible) {
             if (mine) sfx.boing(1, 0.7, W.get(ev.id)?.body.tier ?? 0);
             else if (Math.random() < 0.35) sfx.boing(0.6, 0.12, 0);
           }
@@ -1234,6 +1196,7 @@ async function boot() {
       draw(dt, now);
       return;
     }
+    closeOnReady();
     if (G.rush) {
       rushFrame(dt, now);
       return;
@@ -1259,27 +1222,16 @@ async function boot() {
         if (tw && G.screen === 'game') sfx.twist(tw);
       }
       if (G.mode === 'results' && G.screen === 'game') sfx.fanfare();
-      if (G.screen === 'title') safe(() => G.room?.hideLobby?.(true));
-      if (G.mode === 'lobby' && G.wantReady) {
-        G.wantReady = false;
-        safe(() => G.match.ready(true));
-      }
     }
-    // Countdown (our own, timed to the room).
-    if (G.mode === 'lobby' && G.match?.phase === 'countdown' && G.screen === 'game') {
+    // The platform draws the 3-2-1: its notes are the game's.
+    if (G.mode === 'lobby' && G.match?.phase === 'countdown') {
       const c = G.match.countdown;
-      // The big count is for the last ten seconds only (a long wait shows the platform's own strip).
       const n = c === null || !(c <= 10) ? null : Math.max(1, Math.ceil(c));
       if (n !== G.countN) {
         G.countN = n;
         if (n !== null) sfx.count(n);
       }
-      ui.count(n);
-    } else if (performance.now() < G.jumpUntil && G.screen === 'game') ui.count(0);
-    else {
-      G.countN = null;
-      ui.count(null);
-    }
+    } else G.countN = null;
     // Host change: bots move to (or from) this page.
     if (G.mode === 'round') {
       const host = !!G.match.isHost;
@@ -1307,7 +1259,6 @@ async function boot() {
     const frozen = G.mode === 'round' && G.match.phase === 'roundEnd' && G.world.t >= (G.match.data?.endT ?? 0) + 0.65;
     if (!frozen) handle(G.world.advance(tgt, inp));
     else input.takeSlam();
-    if (G.mode === 'attract' || G.mode === 'offline') attractTick();
     G.world.leader = leaderId() ?? '';
     // Wild springs.
     if (G.mode === 'round' && G.match.phase === 'round') {
@@ -1329,16 +1280,6 @@ async function boot() {
     sendPresence(now);
     setControls();
     draw(dt, now);
-  }
-
-  function attractTick() {
-    if (G.mode !== 'attract') return;
-    let alive = 0;
-    for (const e of G.world.entries.values()) if (!e.body.out) alive++;
-    if (alive <= 1 || G.world.t > 75) {
-      if (!G.attractEnd) G.attractEnd = G.world.t + 3;
-      else if (G.world.t > G.attractEnd) G.mode = '';
-    }
   }
 
   function leaderId() {
@@ -1417,7 +1358,7 @@ async function boot() {
       portrait: view.portrait(myFull()), goals,
       boxState: night?.box ? 'opened' : goals.every((g) => g.done) ? 'ready' : 'locked',
       rushSub: `${SHORT[info.bed]} BED${info.twist ? ` · ${TWIST_NAMES[info.twist]}` : ''}${tonight ? ` · ${tonight}` : ''}`,
-      rushNew: !tonight, touch: input.touch,
+      rushNew: !tonight,
     };
   }
 
@@ -1553,8 +1494,9 @@ async function boot() {
       ui.band(null);
     }
     // Title and wardrobe.
-    if (G.screen === 'title') {
-      ui.placeTitle(res.menuBottom);
+    // Everything of the player's own sits around the bed in the lobby, until a countdown begins.
+    if (G.screen === 'game' && (G.mode === 'offline' || (G.mode === 'lobby' && G.match?.phase === 'lobby'))) {
+      ui.placeTitle(res.menuBottom, ui.bandRect()?.bottom ?? 0);
       ui.title(titleData());
     } else ui.title(null);
     if (G.screen === 'wardrobe') {
@@ -1575,14 +1517,7 @@ async function boot() {
     let opts = {};
     let rate = 2.6;
     const portraitScreen = h > w * 1.05;
-    if (G.screen === 'title') {
-      const tr = ui.titleRects();
-      margins.top = tr ? tr.logo.top + tr.logo.height * 0.62 : h * 0.3;
-      const under = tr ? (portraitScreen ? tr.me : tr.btns) : null;
-      margins.bottom = under && under.height ? h - under.top + 4 : h * 0.06;
-      fb = { ...bedBox, y1: 1.6, z1: box.z1 + 0.2 };
-      opts = { pitch: portraitScreen ? 0.72 : 0.44 };
-    } else if (G.screen === 'wardrobe') {
+    if (G.screen === 'wardrobe') {
       const s = bed.surfaces[bed.surfaces.length - 1];
       fb = { x0: s.cx - 1.35, x1: s.cx + 1.35, y0: s.top - 0.1, y1: s.top + 2.4, z0: s.cz - 0.6, z1: s.cz + 0.6 };
       const pr = ui.wardrobeRect();
@@ -1596,7 +1531,11 @@ async function boot() {
       rate = 4;
     } else if (G.mode === 'lobby' || G.mode === 'offline') {
       const br = ui.bandRect();
-      margins.top = (br && br.height ? Math.max(br.bottom, res.menuBottom) : res.menuBottom + 80) + 30;
+      let top = br && br.height ? Math.max(br.bottom, res.menuBottom) : res.menuBottom + 80;
+      const tr = ui.titleRects();
+      if (tr?.logo.height) top = Math.max(top, tr.logo.top + tr.logo.height * 0.6);
+      if (tr && narrow) top = Math.max(top, tr.me.bottom);
+      margins.top = top + 22;
       margins.bottom = h - res.lobbyTop + 6;
       fb = { ...fb, z1: box.z1 + 2.4, y0: bed.floor };
     } else if (G.mode === 'results') {
@@ -1609,7 +1548,7 @@ async function boot() {
     } else {
       const top = sr ? sr.bottom : rr ? rr.bottom : 90;
       margins.top = top + 10;
-      margins.bottom = portraitScreen ? h * 0.2 : 16;
+      margins.bottom = Math.max(portraitScreen ? h * 0.2 : 16, h - res.lobbyTop + 6);
       fb = playBox(W, bedBox);
       const me = W.get(G.myId)?.body;
       if (me?.out && G.mode === 'round') fb = { ...fb, z1: Math.max(fb.z1, box.z1 + 2.4), y0: bed.floor };
@@ -1683,8 +1622,8 @@ async function boot() {
     view.draw(W, {
       looks, me: G.screen === 'game' ? G.myId : null, anim, dt, extras, colorOf: ringOf, lastLaunch: G.lastLaunch, trail: true,
       guilty: frozen && W.t >= (G.match.data?.endT ?? 0) + 0.6, winner: G.match?.data?.winner, cap: leaderId(),
-      cheer: G.mode === 'results' ? (G.match.results?.[0]?.id ?? null) : G.mode === 'attract' && G.attractEnd ? [...W.entries.values()].find((e) => !e.body.out)?.id : null,
-      hideRing: G.mode === 'attract' || G.paused || (G.mode === 'rush' && G.rush?.over),
+      cheer: G.mode === 'results' ? (G.match.results?.[0]?.id ?? null) : null,
+      hideRing: G.paused || (G.mode === 'rush' && G.rush?.over),
     });
     if ((G.mode === 'results' || G.rushOver) && Math.random() < dt * 5) view.fx.confetti((Math.random() - 0.5) * 8, 7, (Math.random() - 0.5) * 5, 2, { speed: 1, up: 0.2, float: 0 });
     const pr = settings.pr();
@@ -1700,22 +1639,21 @@ async function boot() {
     }
     // DOM over the world: name tags, the hint, the invite patch, results.
     const tags = [];
-    if (G.mode === 'lobby' && G.screen === 'game') {
+    if (G.mode === 'lobby') {
       for (const e of G.world.entries.values()) {
         if (e.id === 'biscuit') continue;
         const p = G.room?.players?.get(e.id);
         const head = view.headOf(e.id);
         if (!head || !p) continue;
         const s = view.toScreen(head.x, head.y + 0.45, head.z, w, h);
-        const ready = G.match?.lobby?.players?.find((x) => x.id === e.id)?.ready ?? false;
-        tags.push({ id: e.id, x: s.x, y: s.y, name: e.id === G.myId ? 'You' : p.name.slice(0, 16), ready, host: p.id === G.room.host && G.room.kind !== 'public' });
+        tags.push({ id: e.id, x: s.x, y: s.y, name: e.id === G.myId ? 'You' : p.name.slice(0, 16), host: p.id === G.room.host && G.room.kind !== 'public' });
       }
     }
     if (inRound && G.match?.spectating && G.screen === 'game') {
       const head = view.headOf('watcher');
       if (head) {
         const s = view.toScreen(head.x, head.y + 0.5, head.z, w, h);
-        tags.push({ id: 'watcher', x: s.x, y: s.y, name: 'Next round', ready: null, next: true });
+        tags.push({ id: 'watcher', x: s.x, y: s.y, name: 'Next round', next: true });
       }
     }
     ui.tags(tags);
@@ -1737,9 +1675,6 @@ async function boot() {
     // Results.
     if (G.mode === 'results' && G.screen === 'game') {
       const rs = G.match.results ?? [];
-      const host = G.match.isHost;
-      const secs = G.match.secondsLeft;
-      const pub = G.room.kind === 'public';
       const rd = G.resultsData && G.resultsData.rid === G.rid ? G.resultsData : null;
       ui.results({
         key: `${G.rid}|${rs.length}|${!!rd}`,
@@ -1748,18 +1683,14 @@ async function boot() {
         prog: rd?.prog ?? null,
         ladder: rd ? { bed: bedById(rd.bed).name.toUpperCase(), stars: rd.stars, fresh: rd.fresh } : null,
         swatch: swatchOf,
-        again: host || pub || G.room.kind === 'solo' ? (G.wantReady ? null : 'PLAY AGAIN') : null,
-        wait: G.wantReady ? 'Ready for the next one' : !host && !pub ? 'Waiting for the host' : secs !== null ? `Lobby in ${Math.ceil(secs)}` : '',
       });
     } else ui.results(null);
     ui.pause(G.paused && (inRound || (G.mode === 'rush' && !G.rush?.over)));
   }
 
   if (AUTO) startAudio();
-  else safe(() => G.room?.hideLobby?.(true));
   // Autoplay (local captures): &rush=1 goes straight into Tonight's Rush.
   if (AUTO && params.get('rush') === '1') {
-    G.screen = 'title';
     startRush();
   }
   requestAnimationFrame(frame);

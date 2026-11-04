@@ -30,7 +30,7 @@ export function createInput(ow) {
       e.preventDefault();
     }
     // The platform's button also presses Space (an untrusted event): it's counted through presses('slam') instead.
-    if ((e.code === 'Space' || e.code === 'Enter' || e.key === ' ') && !e.repeat && e.isTrusted) {
+    if ((e.code === 'Space' || e.key === ' ') && !e.repeat && e.isTrusted) {
       slamQueued = true;
       if (e.code === 'Space') e.preventDefault();
     }

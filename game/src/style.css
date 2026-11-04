@@ -108,12 +108,12 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 .disc img { position: absolute; width: 124%; left: -12%; top: -2%; pointer-events: none; }
 
 /* ---- Title ---- */
-#title { position: absolute; inset: 0; --menu-b: 0px; }
+#title { position: absolute; inset: 0; --menu-b: 0px; --band-b: 0px; }
 .logobox {
   position: absolute;
   left: 50%;
-  top: max(calc(var(--menu-b) - 6px), 4px);
-  width: min(500px, 42vw);
+  top: calc(var(--band-b) + 2px);
+  width: min(300px, 26vw);
   transform: translateX(-50%) rotate(-2deg);
   animation: bob 3.2s ease-in-out infinite;
   filter: drop-shadow(0 10px 16px rgba(8, 4, 18, 0.55));
@@ -157,7 +157,9 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 .chip.starchip { color: #ffe27a; }
 .chip.dim { opacity: 0.5; }
 
-.goals { position: absolute; right: 16px; top: 16px; width: 300px; padding: 14px 16px 12px; pointer-events: auto; }
+.sidecol { position: absolute; right: 16px; top: 16px; width: 300px; display: flex; flex-direction: column; gap: 10px; }
+.goals { padding: 14px 16px 12px; pointer-events: auto; }
+.goals .sum { display: none; margin-left: auto; }
 .goals .head { display: flex; align-items: center; gap: 8px; font-size: 21px; margin-bottom: 8px; color: #ffe27a; }
 .goals .head .ic { width: 22px; height: 22px; }
 .goals .g { display: flex; align-items: center; gap: 9px; margin: 7px 0; font-size: 17px; line-height: 1.05; }
@@ -176,20 +178,19 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 .boxrow.locked .ic { color: rgba(255, 241, 214, 0.6); }
 .boxrow.opened .ic { color: #ffd24a; }
 
-#title .btns { position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 14px; align-items: center; }
-#title .play { font-size: 40px; height: 82px; padding: 0 52px; border-radius: 24px; animation: breathe 2.2s ease-in-out infinite; }
-#title .play::after { border-radius: 18px; }
-#title .play .key { font-family: var(--cond); font-size: 16px; opacity: 0.7; letter-spacing: 0.08em; align-self: flex-end; margin-bottom: 22px; }
-#title .side { height: 64px; font-size: 20px; padding: 0 20px; }
+@media (max-width: 1240px) {
+  .mecard, .sidecol { top: calc(var(--band-b) + 8px); }
+}
+#title .btns { display: flex; gap: 8px; align-items: center; }
+#title .side { flex: 1; height: 58px; font-size: 18px; padding: 0 10px; white-space: nowrap; }
 #title .rush .lb { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; text-align: left; }
 #title .rush .lb small { font-size: 15px; opacity: 0.85; margin-top: 3px; }
 #title .rush .new { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; background: #ff5a4a; box-shadow: 0 0 0 3px var(--plum); animation: blink 1.2s ease-in-out infinite; }
-@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
 @keyframes blink { 50% { transform: scale(0.75); } }
 
 /* ---- Wardrobe ---- */
 #wardrobe { position: absolute; inset: 0; --menu-b: 0px; }
-#wardrobe .card { position: absolute; right: 16px; top: max(calc(var(--menu-b) + 8px), 16px); bottom: 16px; width: min(460px, 46vw); padding: 16px 16px 12px; display: flex; flex-direction: column; pointer-events: auto; }
+#wardrobe .card { position: absolute; right: 16px; top: max(calc(var(--menu-b) + 8px), 16px); bottom: 76px; width: min(460px, 46vw); padding: 16px 16px 12px; display: flex; flex-direction: column; pointer-events: auto; }
 .whead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .whead h2 { margin: 0 0 0 6px; font-size: 28px; }
 .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -215,6 +216,9 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 
 /* ---- Lobby band ---- */
 #band { position: absolute; top: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 0 12px 0 164px; }
+@media (min-width: 1241px) {
+  #band { padding: 0 328px 0 322px; }
+}
 #band .group { display: flex; gap: 8px; }
 #band .bed { width: 86px; height: 74px; padding: 6px 4px; flex-direction: column; gap: 2px; font-size: 16px; line-height: 1; border-radius: 16px; }
 #band .bed svg { width: 34px; height: 18px; margin-bottom: 2px; }
@@ -233,8 +237,6 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 /* Name tags over heads */
 #tags { position: absolute; inset: 0; }
 .tag { position: absolute; left: 0; top: 0; font-size: 18px; white-space: nowrap; display: flex; align-items: center; gap: 5px; will-change: transform; }
-.tag .ck { width: 24px; height: 24px; }
-.tag .ck.on { background: #39b86e; box-shadow: inset 0 0 0 2px #fff; }
 .tag .key { color: #ffe27a; display: grid; }
 .tag .key svg { width: 17px; height: 17px; }
 .tag.next { font-size: 16px; }
@@ -347,8 +349,6 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 
 #hint { position: absolute; left: 0; top: 0; font-size: 24px; white-space: nowrap; transition: opacity 0.25s; }
 
-#count { position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); font-size: clamp(84px, min(22vw, 30vh), 200px); line-height: 1; pointer-events: none; color: var(--cream); text-shadow: 0 6px 0 var(--plum), 5px 0 0 var(--plum), -5px 0 0 var(--plum), 0 -5px 0 var(--plum), 4px 4px 0 var(--plum), -4px 4px 0 var(--plum), 4px -4px 0 var(--plum), -4px -4px 0 var(--plum), 0 14px 0 rgba(0, 0, 0, 0.25); }
-#count.pop { animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
 @keyframes pop { from { transform: translate(-50%, -50%) scale(0.3) rotate(-12deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
 #floaters { position: absolute; inset: 0; }
@@ -358,7 +358,7 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 @keyframes popword { 0% { transform: translate(-50%, -30%) scale(0.4); opacity: 0; } 18% { transform: translate(-50%, -60%) scale(1.15); opacity: 1; } 70% { transform: translate(-50%, -110%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -140%) scale(0.9); opacity: 0; } }
 
 /* ---- Results and the Rush's end ---- */
-#results, #rushover { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; }
+#results, #rushover { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px 12px 76px; }
 #results .card, #rushover .card { width: min(94vw, 880px); max-height: calc(100% - 8px); display: flex; flex-direction: column; overflow: hidden; padding: 20px 26px 18px; pointer-events: auto; animation: cardin 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
 /* Only the body scrolls: the buttons stay in view at the card's bottom however long it gets. */
 #results .body, #rushover .body { flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; scrollbar-width: thin; }
@@ -440,30 +440,37 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 
 /* ---- Phones, portrait ---- */
 @media (max-width: 700px) and (orientation: portrait) {
-  #title { display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; padding: 0 10px max(14px, env(safe-area-inset-bottom)); }
-  .logobox { width: min(420px, 86vw); top: max(calc(var(--menu-b) + 4px), 8px); }
-  .mecard, .goals { position: static; width: auto; }
-  .mecard { padding: 10px 14px 10px 10px; gap: 12px; }
-  .mecard .disc.big { width: 60px; height: 60px; }
-  .mecard .nm { font-size: 19px; }
-  .goals { padding: 10px 14px 10px; }
-  .goals .head { font-size: 18px; margin-bottom: 4px; }
+  /* The top of the screen: the thumbstick takes taps in the lower half. */
+  #title { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; align-items: start; padding: calc(var(--band-b) + 6px) 8px 0; }
+  .logobox { display: none; }
+  .sidecol { display: contents; }
+  .mecard { position: static; width: auto; padding: 6px 10px 6px 6px; gap: 8px; }
+  .mecard .disc.big { width: 40px; height: 40px; }
+  .mecard .lv { min-width: 20px; height: 20px; font-size: 13px; padding: 0 4px; }
+  .mecard .nm { font-size: 16px; }
+  .mecard .xp, .mecard .chips { display: none; }
+  .xpbar { height: 10px; margin: 4px 0 0; }
+  .goals { padding: 8px 12px; }
+  .goals .head { font-size: 17px; margin: 0; cursor: pointer; }
+  .goals .sum { display: inline; }
+  .goals:not(.open) .list, .goals:not(.open) .boxrow { display: none; }
+  .goals.open .head { margin-bottom: 4px; }
   .goals .g { margin: 4px 0; font-size: 16px; }
   .boxrow { margin-top: 6px; padding: 5px 10px; }
-  #title .btns { position: static; transform: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  #title .play { grid-column: 1 / -1; order: -1; height: 70px; font-size: 34px; }
-  #title .side { height: 58px; font-size: 17px; padding: 0 12px; }
+  #title .btns { grid-column: 1 / -1; order: -1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #title .side { height: 48px; font-size: 16px; padding: 0 8px; }
   #title .rush .lb small { font-size: 14px; }
-  #wardrobe .card { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; height: 54vh; padding: 12px 10px 8px; }
+  #wardrobe .card { left: 8px; right: 8px; top: auto; bottom: 72px; width: auto; height: 50vh; padding: 12px 10px 8px; }
   .whead h2 { font-size: 24px; }
   .tabs .tab span { font-size: 13px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px; }
   .item .sw { width: 58px; height: 58px; }
   .item .lk { top: 30px; }
-  #band { padding: 0 8px; gap: 5px; }
-  #band .bed { width: 60px; height: 62px; font-size: 15px; }
+  #band { padding: 0 8px; gap: 5px; flex-wrap: nowrap; }
+  #band .group { gap: 5px; }
+  #band .bed { width: 56px; height: 62px; font-size: 15px; }
   #band .bed svg { width: 28px; height: 15px; }
-  #band .opt { height: 62px; padding: 4px 10px; font-size: 15px; }
+  #band .opt { height: 62px; padding: 4px 6px; font-size: 13px; }
   #band .opt b { font-size: 21px; }
   #strip { gap: 4px; }
   .seat { width: 62px; }
@@ -486,23 +493,25 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
 
 /* ---- Short landscape screens (phones on their side) ---- */
 @media (max-height: 520px) and (orientation: landscape) {
-  .logobox { width: min(360px, 40vw); top: 2px; }
-  .mecard { width: 240px; padding: 8px 12px 8px 8px; gap: 10px; }
-  .mecard .disc.big { width: 54px; height: 54px; }
-  .mecard .nm { font-size: 18px; }
-  .xpbar { height: 11px; margin: 4px 0 2px; }
-  .chips { margin-top: 3px; }
-  .chip { font-size: 15px; }
-  .goals { width: 250px; padding: 8px 12px; top: 8px; right: 8px; }
-  .goals .head { font-size: 16px; margin-bottom: 2px; }
+  .logobox { display: none; }
+  .mecard { width: 160px; top: calc(var(--band-b) + 6px); left: 8px; padding: 6px 10px 6px 6px; gap: 8px; }
+  .mecard .disc.big { width: 40px; height: 40px; }
+  .mecard .lv { min-width: 20px; height: 20px; font-size: 13px; padding: 0 4px; }
+  .mecard .nm { font-size: 15px; }
+  .mecard .xp, .mecard .chips { display: none; }
+  .xpbar { height: 10px; margin: 4px 0 0; }
+  .sidecol { width: 208px; top: 8px; right: 8px; gap: 6px; }
+  .goals { padding: 6px 12px; }
+  .goals .head { font-size: 16px; margin: 0; cursor: pointer; }
+  .goals .sum { display: inline; }
+  .goals:not(.open) .list, .goals:not(.open) .boxrow { display: none; }
+  .goals.open .head { margin-bottom: 2px; }
   .goals .g { font-size: 15px; margin: 3px 0; }
   .goals .g .bar { margin-top: 2px; height: 5px; }
   .boxrow { margin-top: 4px; padding: 3px 8px; font-size: 15px; }
-  #title .btns { bottom: 10px; gap: 10px; }
-  #title .play { height: 62px; font-size: 30px; padding: 0 36px; }
-  #title .play .key { margin-bottom: 14px; }
-  #title .side { height: 52px; font-size: 16px; padding: 0 14px; }
-  #wardrobe .card { top: 8px; bottom: 8px; width: min(420px, 52vw); padding: 10px 10px 6px; }
+  #title .btns { flex-direction: column; align-items: stretch; gap: 6px; }
+  #title .side { flex: none; height: 44px; font-size: 15px; padding: 0 10px; }
+  #wardrobe .card { top: 8px; bottom: 70px; width: min(420px, 52vw); padding: 10px 10px 6px; }
   .whead { margin-bottom: 6px; }
   .whead h2 { font-size: 22px; }
   .tabs { margin-bottom: 6px; }
@@ -511,9 +520,10 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); }
   .item .sw { width: 52px; height: 52px; }
   .item .lk { top: 26px; }
-  #band { top: 8px; padding-left: 160px; }
-  #band .bed { width: 58px; height: 56px; font-size: 15px; }
-  #band .opt { height: 56px; }
+  #band { top: 8px; padding: 0 224px 0 150px; flex-wrap: nowrap; }
+  #band .group { gap: 4px; }
+  #band .bed { width: 50px; height: 56px; font-size: 13px; }
+  #band .opt { height: 56px; padding: 4px 6px; font-size: 13px; }
   #banner { top: 70px; }
   .seat .disc { width: 46px; height: 46px; }
   .seat .toy { top: 24px; }
@@ -528,8 +538,5 @@ button.pill .ic { width: 22px; height: 22px; flex: none; }
   .bigscore { font-size: 54px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ribbon.unroll, #count.pop, #clock.ring, .logobox, #title .play, .seat .stars svg.on, .seat.danger .disc, .popword { animation: none; }
+  .ribbon.unroll, #clock.ring, .logobox, .seat .stars svg.on, .seat.danger .disc, .popword { animation: none; }
 }
-
-/* The trailer's last shot: the name alone over the bed. */
-.logoonly #title .mecard, .logoonly #title .goals, .logoonly #title .btns { display: none; }

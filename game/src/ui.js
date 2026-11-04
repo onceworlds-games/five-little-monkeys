@@ -105,24 +105,24 @@ export function createUI(root, cb) {
   const meStreak = el('span', 'chip moonchip', meRow);
   const meStars = el('span', 'chip starchip', meRow);
 
-  const goals = el('div', 'card felt f-plum goals', title);
+  const sideCol = el('div', 'sidecol', title);
+  const goals = el('div', 'card felt f-plum goals', sideCol);
   const gHead = el('div', 'head slab', goals);
   gHead.appendChild(icon('moon', 'ic'));
   el('span', '', gHead, 'TONIGHT');
+  // A phone keeps the goals folded to this count: tap to open them.
+  const gSum = el('span', 'sum', gHead);
+  gHead.addEventListener('click', () => goals.classList.toggle('open'));
   const gList = el('div', 'list', goals);
   const gBox = el('div', 'boxrow', goals);
   gBox.appendChild(icon('gift', 'ic'));
   const gBoxT = el('span', '', gBox, 'BEDTIME BOX');
 
-  const btns = el('div', 'btns', title);
+  const btns = el('div', 'btns', sideCol);
   const wardB = el('button', 'pill felt f-red side', btns);
   wardB.appendChild(icon('hanger', 'ic'));
   el('span', 'lb', wardB, 'WARDROBE');
   wardB.addEventListener('click', () => cb.onWardrobe());
-  const play = el('button', 'pill felt f-amber play', btns);
-  el('span', 'lb slab', play, 'PLAY');
-  const playKey = el('small', 'key', play, 'SPACE');
-  play.addEventListener('click', () => cb.onPlay());
   const rushB = el('button', 'pill felt f-blue side rush', btns);
   rushB.appendChild(icon('moon', 'ic'));
   const rushT = el('span', 'lb', rushB);
@@ -186,8 +186,6 @@ export function createUI(root, cb) {
 
   const hint = el('div', 'outline hide', root);
   hint.id = 'hint';
-  const count = el('div', 'slab hide', root);
-  count.id = 'count';
   const floaters = el('div', '', root);
   floaters.id = 'floaters';
 
@@ -208,7 +206,6 @@ export function createUI(root, cb) {
 
   let bannerKey = '';
   let bannerUntil = 0;
-  let countN = null;
   const timers = new Set();
   const later = (ms, fn) => {
     const id = setTimeout(() => {
@@ -340,7 +337,6 @@ export function createUI(root, cb) {
     title(d) {
       title.classList.toggle('hide', !d);
       if (!d) return;
-      playKey.classList.toggle('hide', !!d.touch);
       setImg(meImg, d.portrait);
       const key = JSON.stringify({ ...d, portrait: !!d.portrait });
       if (title._key === key) return;
@@ -354,6 +350,7 @@ export function createUI(root, cb) {
       meStreak.classList.toggle('dim', !d.streak);
       meStars.replaceChildren(icon('star', 'ic'), `${d.stars}/15`);
       meStars.title = 'Bedtime Ladder stars';
+      gSum.textContent = `${d.goals.filter((g) => g.done).length}/${d.goals.length}`;
       gList.replaceChildren();
       for (const g of d.goals) {
         const row = el('div', `g${g.done ? ' done' : ''}`, gList);
@@ -375,8 +372,9 @@ export function createUI(root, cb) {
       if (title.classList.contains('hide')) return null;
       return { logo: logoBox.getBoundingClientRect(), btns: btns.getBoundingClientRect(), me: me.getBoundingClientRect(), goals: goals.getBoundingClientRect() };
     },
-    placeTitle(menuBottom) {
+    placeTitle(menuBottom, bandBottom) {
       title.style.setProperty('--menu-b', `${menuBottom}px`);
+      title.style.setProperty('--band-b', `${bandBottom}px`);
     },
     /** d: null, or { key, slot, slots: [{ id, name }], items: [{ id, name, owned, worn, lock, swatch, color }], note } */
     wardrobe(d) {
@@ -478,18 +476,11 @@ export function createUI(root, cb) {
         if (!e) {
           e = el('div', 'tag outline', tags);
           e._nm = el('span', '', e);
-          e._ck = el('span', 'ck', e);
           e._key = el('span', 'key', e);
           tagEls.set(t.id, e);
         }
         e.style.transform = `translate(${t.x}px, ${t.y}px) translate(-50%, -100%)`;
         e._nm.textContent = t.name;
-        e._ck.classList.toggle('hide', t.ready === null);
-        e._ck.classList.toggle('on', !!t.ready);
-        if (e._ck._on !== !!t.ready) {
-          e._ck._on = !!t.ready;
-          e._ck.replaceChildren(...(t.ready ? [icon('check')] : []));
-        }
         if (e._key._on !== !!t.host) {
           e._key._on = !!t.host;
           e._key.replaceChildren(...(t.host ? [icon('key')] : []));
@@ -662,16 +653,6 @@ export function createUI(root, cb) {
       if (hint.textContent !== text) hint.textContent = text;
       hint.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
     },
-    count(n) {
-      if (n === countN) return;
-      countN = n;
-      count.classList.toggle('hide', n === null);
-      if (n === null) return;
-      count.textContent = n === 0 ? 'JUMP!' : String(n);
-      count.classList.remove('pop');
-      void count.offsetWidth;
-      count.classList.add('pop');
-    },
     floater(text, from, to, color) {
       const f = el('div', 'floater slab', floaters, text);
       f.style.transform = `translate(${from.x}px, ${from.y}px) translate(-50%, -50%)`;
@@ -696,7 +677,7 @@ export function createUI(root, cb) {
     },
     /**
      * rs: null, or { key, title, rows: [{ place, name, hex, points, me, portrait }], prog, ladder: { bed, stars, fresh },
-     * again: label | null, wait, swatch(item) }
+     * swatch(item) }
      */
     results(rs) {
       results.classList.toggle('hide', !rs);
@@ -705,8 +686,6 @@ export function createUI(root, cb) {
         return;
       }
       if (results._key === rs.key) {
-        if (results._wait) results._wait.textContent = rs.wait ?? '';
-        if (results._again) results._again.classList.toggle('hide', !rs.again);
         rs.rows.forEach((row, i) => results._imgs?.[i] && setImg(results._imgs[i], row.portrait));
         return;
       }
@@ -741,10 +720,7 @@ export function createUI(root, cb) {
       }
       if (rs.prog) progressBlock(el('div', 'progcol', cols), rs.prog, rs.swatch, 700, el('div', 'gifts', left));
       const foot = el('div', 'foot', card);
-      results._again = el('button', 'pill felt f-amber again', foot, rs.again ?? 'PLAY AGAIN');
-      results._again.classList.toggle('hide', !rs.again);
-      results._again.addEventListener('click', () => cb.onAgain());
-      results._wait = el('div', 'wait', foot, rs.wait ?? '');
+      el('button', 'pill felt f-plum small', foot, 'CLOSE').addEventListener('click', () => cb.onCloseResults());
     },
     /**
      * d: null, or { key, score, best, tonight, newBest, board: [{ rank, name, score, me }] | null (coming) | false (none),

@@ -58,11 +58,10 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
 
 | Time | What the screen shows | Hint (once, then gone) |
 |---|---|---|
-| 0 s | **Title.** The bedroom at night, moonlight through the window, the bedside lamp's warm pool. Five monkeys bounce on the bed, slamming each other; one flies off and bonks on the floor. "FIVE LITTLE MONKEYS" embroidered big at the top, one amber patch button: **PLAY** (Space). Beside it, a small patch with your stars (★ 0/15). | none |
-| ~2 s | **Play** (tap, click, Space, Enter) starts the sound. The camera glides to the game view; the bots sit cross-legged on the rug at the foot of the bed with an **Invite** patch at the empty end; your monkey drops onto the quilt and starts bouncing. **Lobby = practice:** Biscuit, a stuffed bear, bounces passively on the bed as a target (each page has its own Biscuit). Top band: the bed patches (only the Kid's Bed open). Bottom: the platform's Ready strip. | "WASD to steer" (touch: "Stick to steer"), over your monkey's name tag, until you steer. Keys or touch is decided by the last input used (before any input: a touch screen without a mouse shows touch) |
+| 0 s | **Lobby, straight away.** The bedroom at night, moonlight through the window, the bedside lamp's warm pool. No Play button: the game joins its room as it loads. The bots sit cross-legged on the rug at the foot of the bed with an **Invite** patch at the empty end; your monkey drops onto the quilt and starts bouncing. **Lobby = practice:** Biscuit, a stuffed bear, bounces passively on the bed as a target (each page has its own Biscuit). "FIVE LITTLE MONKEYS" under the top band (the bed patches, only the Kid's Bed open); your card, tonight's goals, Wardrobe and Tonight's Rush around the bed. Bottom: the platform's Ready strip, the only way to start. The first key or tap starts the sound. | "WASD to steer" (touch: "Stick to steer"), over your monkey's name tag, until you steer. Keys or touch is decided by the last input used (before any input: a touch screen without a mouse shows touch) |
 | ~4 s | You steer around. | "SPACE to slam" (phone: "Tap SLAM") |
 | ~6 s | You slam: whump, the quilt folds into a ring, Biscuit is launched and tumbles off the edge with a bonk, then pops back onto the bed. | "Knock it off!" appears the moment your first ring rolls, if Biscuit is still on |
-| ~10 s | You tap Ready. **Countdown** (the game's own, timed to the room): its last ten seconds in big stitched numerals with toy-piano notes, while the four bots hop up onto their spots. "JUMP!" | none |
+| ~10 s | You tap Ready. **Countdown** (the platform's 3-2-1, with toy-piano notes from the game) while the four bots hop up onto their spots. | none |
 | ~14 s | **Round 1.** The verse banner unrolls from the headboard: "FIVE LITTLE MONKEYS", the melody's first line. Slams are locked for the first 2.5 s (bots hold theirs for 5 s in a player's first ever round). | "Stay on. Knock them off." under the banner, round 1 only |
 | ~16-25 s | First slams. A ring rolls toward you; if it catches you low you fly up spinning. | first two launches: "Steer back!". First two launches toward an edge: "SPACE to drop!" (touch: "Tap SLAM to drop!") |
 | ~20-35 s | First fall (usually a bot): slide whistle, bonk, bandage, stars. Banner "FOUR LITTLE MONKEYS", under it "RUMBLE bonked PIP" in their colours ("pillowed" for a pillow, "fell off" with no credit, "dozed off" for a player who went away); a "+1" flies from the faller to Rumble's plush on the strip. The faller's plush tips over. The cause stays on screen: the knocker's ring is drawn in its colour, and a launched monkey trails its knocker's colour. | none |
@@ -75,7 +74,7 @@ Every monkey bounces by itself, like on a trampoline (a steady ~1 s rhythm). The
 | | Keyboard | Phone (platform controls) |
 |---|---|---|
 | Steer (in the air) / aim a pillow when out | WASD or arrows | the platform stick, `stick: 'analog'` (exact direction and speed) |
-| Slam / throw a pillow when out | Space (Enter also works) | one big button, `{ id: 'slam', label: 'Slam', key: ' ' }`, relabelled "Throw" when out (same id, so it stays held) |
+| Slam / throw a pillow when out | Space | one big button, `{ id: 'slam', label: 'Slam', key: ' ' }`, relabelled "Throw" when out (same id, so it stays held) |
 | Lobby: pick a bed, rounds, your pyjamas (host picks bed and rounds) | click / tap the patches | tap the patches |
 
 Mouse not needed in play. No other buttons. `ow.controls.set(null)` on the title and results; the stick and Slam are on
@@ -138,20 +137,20 @@ every pattern a few hours; the knock-off and fastest-win boards after that.
 
 ## Multiplayer
 
-- **Public game**, rounds. `ow.rooms.join({ maxPlayers: 5, minPlayers: 1, lobby: 'bar', ownCountdown: true, settings })`,
+- **Public game**, rounds. `ow.rooms.join({ maxPlayers: 5, minPlayers: 1, lobby: 'bar', settings })`,
   once, on load. Five fits the rhyme. `minPlayers: 1`: a lone player readies and plays with bots. The platform's
   private servers and invites cover friends; the game has no server menus.
 - **Settings** (declared, drawn by the game in its lobby, changed by the host with `room.setSetting`):
   `bed` (`kid`, `bunk`, `water`, `king`, `poster`; default `kid`) and `rounds` (3 or 5; default 3). The host can only pick
   beds their own ladder has unlocked; everyone plays the bed the host picked, unlocked or not, and earns its stars.
-- **Lobby and ready-up:** the game draws the lobby (the bed itself, everyone bouncing on it, names and ready checks over
+- **Lobby and ready-up:** the game draws the lobby (the bed itself, everyone bouncing on it, names over
   their heads, the bed and rounds patches); the platform adds the Ready/Start strip (`lobby: 'bar'`). Public servers
   start on the room's countdown once everyone is ready; private servers wait for the host's Start (`room.canStart`).
-  Joining never starts anything. The game draws its own 3-2-1 from `room.match.startsAt` (one countdown on screen).
+  Joining never starts anything. The strip stays up in the lobby under every panel, and the only 3-2-1 is the platform's.
+  Readying closes the wardrobe, the Rush and the last results; play begins the moment the match starts.
 - **Match:** `createMatch` with `rounds: 'rounds'`, `introSeconds: 0`, `roundEndSeconds: 5.5`, `admit: 'round'`,
-  `resultsSeconds`: 20 in a public server, 25 alone, 0 in a private one (the host's Next). No round time limit in the
-  helper: the host ends each round by the rules below. A participant whose page is on the title when a match runs
-  (a reload, a late Play) goes straight to the game screen.
+  `resultsSeconds: 1`: the match ends at once, the results stay on screen over the lobby and its strip until the player
+  closes them or readies. No round time limit in the helper: the host ends each round by the rules below.
 - **Scoring:** round winner (last monkey jumping) **+3**; every knock-off **+1** to whoever launched the faller (a slam
   or a pillow, credited if the fall comes within 3 s of that launch; walking off on your own scores nobody). Most points
   after 3 (or 5) rounds wins; ties share the place. If 90 s pass with more than one monkey on the bed, Mama comes in
@@ -304,24 +303,23 @@ slammer at a pro's skill beats careful pros (37% of rounds), so the lesson the g
 All panels are quilt patches (see Art direction). Nothing sits in the top-left 150 × 70 px or any `ow.ui.reserved` area;
 everything lays out again on `ow.on('reserved')` and resize.
 
-1. **Title.** The live bedroom with the cast bouncing on the last bed you played, every one in their own outfit. The
-   name in felt letters across the top, arched like a storybook. Top left, under the platform's menu, your card: your
-   plush's portrait, your level and its bar, the streak's moon and your stars. Top right, tonight's three goals, stitched
-   on as you finish them, and the Bedtime Box (locked, ready, or opened tonight). Bottom middle: **WARDROBE**, a big
-   breathing **PLAY** (Enter), and **TONIGHT'S RUSH** with tonight's bed and twist (and your best tonight). On a phone the
-   card and the goals stack above the buttons.
+1. **Arrival.** There is no title gate: the page opens on the lobby (3). The name in felt letters under the top band,
+   arched like a storybook. Your card (your plush's portrait, your level and its bar, the streak's moon and your stars)
+   top left, under the platform's menu. Tonight's three goals, stitched on as you finish them, with the Bedtime Box, and
+   under them **WARDROBE** and **TONIGHT'S RUSH** (tonight's bed and twist, your best tonight). On a phone the goals fold
+   to a count you can tap open. Everything stays clear of the platform's strip.
 2. **Wardrobe.** The camera drops close to the bed, where your monkey stands on the quilt. A felt panel (a bottom sheet
    on a portrait phone) with five tabs (Pyjamas, Hats, Ring thread, Launch trail, Win dance) and a grid of swatches: the
    real print on your colour, your plush in each hat, a fold of quilt in the thread, the trail's own sprites. Locked
    ones show what opens them ("Level 21", "6 stars", "Bedtime Box"). Tap to wear: a rustle, a puff of fluff, a wave;
    threads roll a ring under your monkey, trails orbit it, dances play. Escape or Back closes it.
 3. **Lobby.** The bed fills the screen; your monkey bounces (practice) with Biscuit the bear; other players bounce too,
-   their names (white, plum outline) and a ready check in a felt circle over their heads, a small key over the host.
+   their names (white, plum outline) over their heads, a small key over the host.
    Falling off in the lobby just pops you back onto the quilt. Unfilled seats: bot monkeys sitting on the rug at the
    foot of the bed, with an **Invite** patch beside them (`ow.ui.showInvite()`). Top band: five bed patches (picture of the bed, its name, its 3 stars, a stitched padlock when
    locked; the chosen one raised), and the rounds patch (3 / 5); what you wear is picked in the wardrobe. Only the
    host's patches respond; the others show the host's choice. Bottom: the platform's Ready strip.
-4. **Countdown.** Its last ten seconds in stitched numerals that drop onto the quilt with a puff; "JUMP!".
+4. **Countdown.** The platform's 3-2-1, with toy-piano notes; the game draws no numerals of its own.
 5. **Play.** The bed, nearly edge to edge. Top centre: **the monkey strip**, a stitched band with five plush heads in
    seat colours, each with its symbol, the player's name under it (cut to 8 letters) and the match points on a felt tag;
    a fallen monkey's plush tips over with a bandage. To its right, **the alarm clock**: its hand sweeps to a red WILD
@@ -338,8 +336,8 @@ everything lays out again on `ow.on('reserved')` and resize.
 9. **Results.** The winner dances its win dance on the bed in a burst of confetti, the others sit on the rug. A felt
    card on two columns: places 1-5 (portraits of the plush, names, points) and the ladder line (stars earned popping in,
    a new bed stitched on); then your progress: XP lines counting into the level bar (a level-up chimes and shows what
-   it opened), tonight's goals ticking, the streak, the Bedtime Box opening. One button: **PLAY AGAIN** (Enter; readies
-   you, and skips the wait if you're the host). After the timer, the lobby.
+   it opened), tonight's goals ticking, the streak, the Bedtime Box opening. One button: **CLOSE**. They stay up over
+   the lobby, with the platform's strip under them, until you close them or ready.
 10. **Paused** (solo only). One patch, "Paused", **Resume**.
 11. **Room closed.** One patch, one button: "You were removed" + Play; "Disconnected" + Rejoin; "Playing in another
     tab" + Play here. Each calls `rooms.join` again with the same options.

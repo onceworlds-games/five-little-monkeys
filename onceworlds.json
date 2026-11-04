@@ -30,12 +30,6 @@
     },
     {
       "keys": [
-        "Enter"
-      ],
-      "action": "Play, play again"
-    },
-    {
-      "keys": [
         "Escape"
       ],
       "action": "Close the wardrobe"
